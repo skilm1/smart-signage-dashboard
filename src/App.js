@@ -1,6 +1,20 @@
+import "./App.css";
 import { useEffect, useState } from "react";
+import {
+  Chart as ChartJS,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Legend,
+  Tooltip
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip);
 
 function App() {
+
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
@@ -10,6 +24,7 @@ function App() {
 
   const loadData = async () => {
     try {
+
       setError("");
 
       const eventsRes = await fetch(EVENTS_API);
@@ -18,13 +33,10 @@ function App() {
       const eventsData = await eventsRes.json();
       const adsData = await adsRes.json();
 
-      console.log("events:", eventsData);
-      console.log("ads:", adsData);
-
       setEvents(Array.isArray(eventsData) ? eventsData : []);
       setAds(Array.isArray(adsData) ? adsData : []);
+
     } catch (err) {
-      console.error("Failed to load dashboard data:", err);
       setError(String(err));
     }
   };
@@ -37,71 +49,178 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
+  const timestamps = events.map(e => e.ts);
+  const temperatures = events.map(e => e.temperature ?? null);
+  const humidity = events.map(e => e.humidity ?? null);
+  const peopleCounts = events.map(e => e.person_count ?? null);
+
+  const temperatureChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "Temperature",
+        data: temperatures,
+        borderColor: "#38bdf8",
+        tension: 0.3
+      }
+    ]
+  };
+
+  const humidityChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "Humidity",
+        data: humidity,
+        borderColor: "#22c55e",
+        tension: 0.3
+      }
+    ]
+  };
+
+  const peopleChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "People",
+        data: peopleCounts,
+        borderColor: "#f59e0b",
+        tension: 0.3
+      }
+    ]
+  };
+
   return (
-    <div style={{ fontFamily: "Arial", padding: 24 }}>
-      <h1>Smart Signage Dashboard</h1>
+
+    <div className="dashboard">
+
+      <h1>SMART SIGNAGE AI SYSTEM</h1>
 
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
+      <div className="stats">
+
+        <div className="statCard">
+          <div>People</div>
+          <div className="statNumber">{latest?.person_count ?? 0}</div>
+        </div>
+
+        <div className="statCard">
+          <div>Avg Age</div>
+          <div className="statNumber">{latest?.age_mid ?? 0}</div>
+        </div>
+
+        <div className="statCard">
+          <div>Temp</div>
+          <div className="statNumber">{latest?.temperature ?? "--"}°</div>
+        </div>
+
+        <div className="statCard">
+          <div>Humidity</div>
+          <div className="statNumber">{latest?.humidity ?? "--"}%</div>
+        </div>
+
+      </div>
+
+
+      <div className="grid">
+
+        <div className="card">
+
           <h2>Latest Event</h2>
+
           {latest ? (
             <>
-              <p><strong>Device:</strong> {latest.device_id}</p>
-              <p><strong>Timestamp:</strong> {latest.ts}</p>
-              <p><strong>People Count:</strong> {latest.person_count}</p>
-              <p><strong>Face Count:</strong> {latest.face_count}</p>
-              <p><strong>Average Age:</strong> {latest.age_mid}</p>
-              <p><strong>Gender:</strong> {latest.gender}</p>
-              <p><strong>Selected Ad:</strong> {latest.selected_ad_id}</p>
+              <p>Device: {latest.device_id}</p>
+              <p>Timestamp: {latest.ts}</p>
+              <p>People: {latest.person_count}</p>
+              <p>Faces: {latest.face_count}</p>
+              <p>Age: {latest.age_mid}</p>
+              <p>Gender: {latest.gender}</p>
+              <p>Ad: {latest.selected_ad_id}</p>
+              <p>Temp: {latest.temperature ?? "N/A"} °C</p>
+              <p>Humidity: {latest.humidity ?? "N/A"} %</p>
             </>
           ) : (
             <p>No data</p>
           )}
+
         </div>
 
-        <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
+
+        <div className="card">
+
           <h2>Ad Rules</h2>
-          <table width="100%" cellPadding="8" style={{ borderCollapse: "collapse" }}>
+
+          <table>
             <thead>
               <tr>
-                <th align="left">Ad</th>
-                <th align="left">Gender</th>
-                <th align="left">Age</th>
-                <th align="left">Count</th>
-                <th align="left">Priority</th>
+                <th>Ad</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Count</th>
+                <th>Priority</th>
               </tr>
             </thead>
+
             <tbody>
               {ads.map((ad) => (
                 <tr key={ad.ad_id}>
                   <td>{ad.ad_id}</td>
                   <td>{ad.gender}</td>
-                  <td>{ad.age_min} - {ad.age_max}</td>
-                  <td>{ad.min_count} - {ad.max_count}</td>
+                  <td>{ad.age_min}-{ad.age_max}</td>
+                  <td>{ad.min_count}-{ad.max_count}</td>
                   <td>{ad.priority}</td>
                 </tr>
               ))}
             </tbody>
+
           </table>
+
         </div>
+
       </div>
 
-      <div style={{ marginTop: 24, border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
+
+      <div className="chartsGrid">
+
+        <div className="chart">
+          <h3>People Traffic</h3>
+          <Line data={peopleChart} options={{responsive:true,maintainAspectRatio:false}} />
+        </div>
+
+        <div className="chart">
+          <h3>Temperature Trend</h3>
+          <Line data={temperatureChart} options={{responsive:true,maintainAspectRatio:false}} />
+        </div>
+
+        <div className="chart">
+          <h3>Humidity Trend</h3>
+          <Line data={humidityChart} options={{responsive:true,maintainAspectRatio:false}} />
+        </div>
+
+      </div>
+
+
+      <div className="card" style={{marginTop:"20px"}}>
+
         <h2>Recent Events</h2>
-        <table width="100%" cellPadding="8" style={{ borderCollapse: "collapse" }}>
+
+        <table>
           <thead>
             <tr>
-              <th align="left">Timestamp</th>
-              <th align="left">Device</th>
-              <th align="left">People</th>
-              <th align="left">Faces</th>
-              <th align="left">Age</th>
-              <th align="left">Gender</th>
-              <th align="left">Ad</th>
+              <th>Timestamp</th>
+              <th>Device</th>
+              <th>People</th>
+              <th>Faces</th>
+              <th>Age</th>
+              <th>Gender</th>
+              <th>Temp</th>
+              <th>Humidity</th>
+              <th>Ad</th>
             </tr>
           </thead>
+
           <tbody>
             {events.map((e, idx) => (
               <tr key={idx}>
@@ -111,12 +230,17 @@ function App() {
                 <td>{e.face_count}</td>
                 <td>{e.age_mid}</td>
                 <td>{e.gender}</td>
+                <td>{e.temperature ?? "-"}</td>
+                <td>{e.humidity ?? "-"}</td>
                 <td>{e.selected_ad_id}</td>
               </tr>
             ))}
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 }
