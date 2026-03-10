@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/smart-signage-dashboard/static/css/main.f2d2037d.css",
+    "main.js": "/smart-signage-dashboard/static/js/main.cbfbe29e.js",
+    "static/js/453.200dda8a.chunk.js": "/smart-signage-dashboard/static/js/453.200dda8a.chunk.js",
+    "index.html": "/smart-signage-dashboard/index.html",
+    "main.f2d2037d.css.map": "/smart-signage-dashboard/static/css/main.f2d2037d.css.map",
+    "main.cbfbe29e.js.map": "/smart-signage-dashboard/static/js/main.cbfbe29e.js.map",
+    "453.200dda8a.chunk.js.map": "/smart-signage-dashboard/static/js/453.200dda8a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f2d2037d.css",
+    "static/js/main.cbfbe29e.js"
+  ]
+}
