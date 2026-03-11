@@ -26,12 +26,97 @@ ChartJS.register(
 );
 
 function formatTime(ts) {
+  if (!ts) return "-";
   const date = new Date(ts * 1000);
   return date.toISOString().replace("T", " ").slice(0, 19);
 }
 
-function App() {
+function parseApiArray(data) {
+  if (Array.isArray(data)) return data;
 
+  if (data && Array.isArray(data.items)) return data.items;
+
+  if (data && typeof data.body === "string") {
+    try {
+      const parsed = JSON.parse(data.body);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function normalizeGenderCounts(genderCounts, fallbackGender) {
+  const result = { male: 0, female: 0 };
+
+  if (genderCounts && typeof genderCounts === "object" && !Array.isArray(genderCounts)) {
+    Object.entries(genderCounts).forEach(([key, value]) => {
+      const k = String(key).toLowerCase();
+      const v = Number(value) || 0;
+
+      if (k === "male") result.male += v;
+      if (k === "female") result.female += v;
+    });
+  }
+
+  if (result.male === 0 && result.female === 0 && fallbackGender) {
+    const g = String(fallbackGender).toLowerCase();
+    if (g === "male") result.male = 1;
+    if (g === "female") result.female = 1;
+  }
+
+  return result;
+}
+
+function getAgeBucketIndex(age) {
+  const n = Number(age);
+  if (!Number.isFinite(n)) return -1;
+  if (n < 18) return 0;
+  if (n < 25) return 1;
+  if (n < 40) return 2;
+  return 3;
+}
+
+function normalizeEvent(raw) {
+  return {
+    device_id: raw.device_id ?? "-",
+    ts: Number(raw.ts) || 0,
+
+    person_count: Number(raw.person_count) || 0,
+    face_count: Number(raw.face_count) || 0,
+
+    age_mid_avg:
+      raw.age_mid_avg !== null && raw.age_mid_avg !== undefined
+        ? Number(raw.age_mid_avg)
+        : null,
+
+    gender_majority: raw.gender_majority ?? "-",
+    gender_counts: raw.gender_counts ?? {},
+
+    group_type: raw.group_type ?? "-",
+    selected_ad_id: raw.selected_ad_id ?? "-",
+
+    temp:
+      raw.temp !== null && raw.temp !== undefined
+        ? Number(raw.temp)
+        : raw.temperature !== null && raw.temperature !== undefined
+          ? Number(raw.temperature)
+          : null,
+
+    hum:
+      raw.hum !== null && raw.hum !== undefined
+        ? Number(raw.hum)
+        : raw.humidity !== null && raw.humidity !== undefined
+          ? Number(raw.humidity)
+          : null,
+
+    people: Array.isArray(raw.people) ? raw.people : []
+  };
+}
+
+function App() {
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
@@ -41,18 +126,25 @@ function App() {
 
   const loadData = async () => {
     try {
-
       setError("");
 
-      const eventsRes = await fetch(EVENTS_API);
-      const adsRes = await fetch(ADS_API);
+      const [eventsRes, adsRes] = await Promise.all([
+        fetch(EVENTS_API),
+        fetch(ADS_API)
+      ]);
 
-      const eventsData = await eventsRes.json();
-      const adsData = await adsRes.json();
+      const eventsJson = await eventsRes.json();
+      const adsJson = await adsRes.json();
 
-      setEvents(Array.isArray(eventsData) ? eventsData : []);
-      setAds(Array.isArray(adsData) ? adsData : []);
+      const rawEvents = parseApiArray(eventsJson);
+      const rawAds = parseApiArray(adsJson);
 
+      const normalizedEvents = rawEvents
+        .map(normalizeEvent)
+        .sort((a, b) => b.ts - a.ts);
+
+      setEvents(normalizedEvents);
+      setAds(Array.isArray(rawAds) ? rawAds : []);
     } catch (err) {
       setError(String(err));
     }
@@ -66,101 +158,138 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
-  const timestamps = events.map(e => formatTime(e.ts));
-  const temperatures = events.map(e => e.temperature ?? null);
-  const humidity = events.map(e => e.humidity ?? null);
-  const peopleCounts = events.map(e => e.person_count ?? null);
+  const timestamps = events.map((e) => formatTime(e.ts));
+  const temperatures = events.map((e) => e.temp);
+  const humidity = events.map((e) => e.hum);
+  const peopleCounts = events.map((e) => e.person_count);
 
   const temperatureChart = {
     labels: timestamps,
-    datasets: [{
-      label: "Temperature",
-      data: temperatures,
-      borderColor: "#38bdf8",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "Temperature",
+        data: temperatures,
+        borderColor: "#38bdf8",
+        tension: 0.3
+      }
+    ]
   };
 
   const humidityChart = {
     labels: timestamps,
-    datasets: [{
-      label: "Humidity",
-      data: humidity,
-      borderColor: "#22c55e",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "Humidity",
+        data: humidity,
+        borderColor: "#22c55e",
+        tension: 0.3
+      }
+    ]
   };
 
   const peopleChart = {
     labels: timestamps,
-    datasets: [{
-      label: "People",
-      data: peopleCounts,
-      borderColor: "#f59e0b",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "People",
+        data: peopleCounts,
+        borderColor: "#f59e0b",
+        tension: 0.3
+      }
+    ]
   };
 
-  const male = events.filter(e => e.gender === "Male").length;
-  const female = events.filter(e => e.gender === "Female").length;
+  // Gender distribution: prefer gender_counts, fallback to gender_majority
+  let male = 0;
+  let female = 0;
+
+  events.forEach((e) => {
+    const counts = normalizeGenderCounts(e.gender_counts, e.gender_majority);
+    male += counts.male;
+    female += counts.female;
+  });
 
   const genderChart = {
     labels: ["Male", "Female"],
-    datasets: [{
-      data: [male, female],
-      backgroundColor: ["#3b82f6", "#ec4899"]
-    }]
+    datasets: [
+      {
+        data: [male, female],
+        backgroundColor: ["#3b82f6", "#ec4899"]
+      }
+    ]
   };
 
-  const ageGroups = [0,0,0,0];
+  // Age distribution: prefer people[].age, fallback to age_mid_avg
+  const ageGroups = [0, 0, 0, 0];
 
-  events.forEach(e=>{
-    const age = e.age_mid;
-    if(age < 18) ageGroups[0]++;
-    else if(age < 25) ageGroups[1]++;
-    else if(age < 40) ageGroups[2]++;
-    else ageGroups[3]++;
+  events.forEach((e) => {
+    let usedDetailedPeopleAge = false;
+
+    if (Array.isArray(e.people) && e.people.length > 0) {
+      e.people.forEach((p) => {
+        const age =
+          p?.age ??
+          p?.age_mid ??
+          p?.age_mid_avg ??
+          null;
+
+        const idx = getAgeBucketIndex(age);
+        if (idx >= 0) {
+          ageGroups[idx] += 1;
+          usedDetailedPeopleAge = true;
+        }
+      });
+    }
+
+    if (!usedDetailedPeopleAge) {
+      const idx = getAgeBucketIndex(e.age_mid_avg);
+      if (idx >= 0) ageGroups[idx] += 1;
+    }
   });
 
   const ageChart = {
-    labels:["<18","18-25","25-40","40+"],
-    datasets:[{
-      label:"Age Distribution",
-      data:ageGroups,
-      backgroundColor:"#22c55e"
-    }]
+    labels: ["<18", "18-25", "25-40", "40+"],
+    datasets: [
+      {
+        label: "Age Distribution",
+        data: ageGroups,
+        backgroundColor: "#22c55e"
+      }
+    ]
   };
 
   const adCounts = {};
 
-  events.forEach(e=>{
+  events.forEach((e) => {
     const id = e.selected_ad_id;
-    if(id){
+    if (id && id !== "-") {
       adCounts[id] = (adCounts[id] || 0) + 1;
     }
   });
 
   const adChart = {
-    labels:Object.keys(adCounts),
-    datasets:[{
-      label:"Ad Triggers",
-      data:Object.values(adCounts),
-      backgroundColor:"#f97316"
-    }]
+    labels: Object.keys(adCounts),
+    datasets: [
+      {
+        label: "Ad Triggers",
+        data: Object.values(adCounts),
+        backgroundColor: "#f97316"
+      }
+    ]
   };
 
-  return(
+  const latestGenderCounts = latest
+    ? normalizeGenderCounts(latest.gender_counts, latest.gender_majority)
+    : { male: 0, female: 0 };
 
+  return (
     <div className="dashboard">
-
       <h1>SMART SIGNAGE AI SYSTEM</h1>
 
-      {error && <p style={{color:"red"}}>Error: {error}</p>}
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
 
       {/* Stats */}
-
       <div className="stats">
-
         <div className="statCard">
           <div>People</div>
           <div className="statNumber">{latest?.person_count ?? 0}</div>
@@ -168,27 +297,27 @@ function App() {
 
         <div className="statCard">
           <div>Avg Age</div>
-          <div className="statNumber">{latest?.age_mid ?? 0}</div>
+          <div className="statNumber">{latest?.age_mid_avg ?? 0}</div>
         </div>
 
         <div className="statCard">
           <div>Temp</div>
-          <div className="statNumber">{latest?.temperature ?? "--"}°</div>
+          <div className="statNumber">
+            {latest?.temp ?? "--"}°
+          </div>
         </div>
 
         <div className="statCard">
           <div>Humidity</div>
-          <div className="statNumber">{latest?.humidity ?? "--"}%</div>
+          <div className="statNumber">
+            {latest?.hum ?? "--"}%
+          </div>
         </div>
-
       </div>
 
       {/* Top Cards */}
-
       <div className="grid">
-
         <div className="card">
-
           <h2>Latest Event</h2>
 
           {latest ? (
@@ -197,18 +326,20 @@ function App() {
               <p>Timestamp: {formatTime(latest.ts)}</p>
               <p>People: {latest.person_count}</p>
               <p>Faces: {latest.face_count}</p>
-              <p>Age: {latest.age_mid}</p>
-              <p>Gender: {latest.gender}</p>
-              <p>Ad: {latest.selected_ad_id}</p>
+              <p>Age: {latest.age_mid_avg ?? "-"}</p>
+              <p>Gender: {latest.gender_majority ?? "-"}</p>
+              <p>
+                Gender Counts: Male {latestGenderCounts.male} / Female {latestGenderCounts.female}
+              </p>
+              <p>Group: {latest.group_type ?? "-"}</p>
+              <p>Ad: {latest.selected_ad_id ?? "-"}</p>
             </>
           ) : (
             <p>No data</p>
           )}
-
         </div>
 
         <div className="card">
-
           <h2>Ad Rules</h2>
 
           <table>
@@ -223,78 +354,74 @@ function App() {
             </thead>
 
             <tbody>
-
-            {ads.map(ad=>(
-              <tr key={ad.ad_id}>
-                <td>{ad.ad_id}</td>
-                <td>{ad.gender}</td>
-                <td>{ad.age_min}-{ad.age_max}</td>
-                <td>{ad.min_count}-{ad.max_count}</td>
-                <td>{ad.priority}</td>
-              </tr>
-            ))}
-
+              {ads.map((ad) => (
+                <tr key={ad.ad_id}>
+                  <td>{ad.ad_id}</td>
+                  <td>{ad.gender ?? "-"}</td>
+                  <td>
+                    {ad.age_min ?? "-"}-{ad.age_max ?? "-"}
+                  </td>
+                  <td>
+                    {ad.min_count ?? "-"}-{ad.max_count ?? "-"}
+                  </td>
+                  <td>{ad.priority ?? "-"}</td>
+                </tr>
+              ))}
             </tbody>
-
           </table>
-
         </div>
-
       </div>
 
       {/* Traffic Charts */}
-
       <div className="chartsGrid">
-
         <div className="chart">
           <h3>People Traffic</h3>
-          <Line data={peopleChart} options={{responsive:true,maintainAspectRatio:false}}/>
+          <Line
+            data={peopleChart}
+            options={{ responsive: true, maintainAspectRatio: false }}
+          />
         </div>
 
         <div className="chart">
           <h3>Temperature</h3>
-          <Line data={temperatureChart} options={{responsive:true,maintainAspectRatio:false}}/>
+          <Line
+            data={temperatureChart}
+            options={{ responsive: true, maintainAspectRatio: false }}
+          />
         </div>
 
         <div className="chart">
           <h3>Humidity</h3>
-          <Line data={humidityChart} options={{responsive:true,maintainAspectRatio:false}}/>
+          <Line
+            data={humidityChart}
+            options={{ responsive: true, maintainAspectRatio: false }}
+          />
         </div>
-
       </div>
 
       {/* Analytics */}
-
       <div className="chartsGrid">
-
         <div className="chart">
           <h3>Gender Distribution</h3>
-          <Pie data={genderChart}/>
+          <Pie data={genderChart} />
         </div>
 
         <div className="chart">
           <h3>Age Distribution</h3>
-          <Bar data={ageChart}/>
+          <Bar data={ageChart} />
         </div>
-
       </div>
 
       <div className="chart">
-
         <h3>Ad Trigger Analytics</h3>
-
-        <Bar data={adChart}/>
-
+        <Bar data={adChart} />
       </div>
 
       {/* Recent Events */}
-
-      <div className="card" style={{marginTop:"20px"}}>
-
+      <div className="card" style={{ marginTop: "20px" }}>
         <h2>Recent Events</h2>
 
         <table>
-
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -310,31 +437,24 @@ function App() {
           </thead>
 
           <tbody>
-
-            {events.slice(0,20).map((e,idx)=>(
+            {events.slice(0, 20).map((e, idx) => (
               <tr key={idx}>
                 <td>{formatTime(e.ts)}</td>
                 <td>{e.device_id}</td>
                 <td>{e.person_count}</td>
                 <td>{e.face_count}</td>
-                <td>{e.age_mid}</td>
-                <td>{e.gender}</td>
-                <td>{e.temperature ?? "-"}</td>
-                <td>{e.humidity ?? "-"}</td>
-                <td>{e.selected_ad_id}</td>
+                <td>{e.age_mid_avg ?? "-"}</td>
+                <td>{e.gender_majority ?? "-"}</td>
+                <td>{e.temp ?? "-"}</td>
+                <td>{e.hum ?? "-"}</td>
+                <td>{e.selected_ad_id ?? "-"}</td>
               </tr>
             ))}
-
           </tbody>
-
         </table>
-
       </div>
-
     </div>
-
   );
-
 }
 
 export default App;
