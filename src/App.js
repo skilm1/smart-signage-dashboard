@@ -117,8 +117,8 @@ function App() {
     try {
 
       const [eventsRes, adsRes] = await Promise.all([
-        fetch(EVENTS_API),
-        fetch(ADS_API)
+        fetch(EVENTS_API + "?t=" + Date.now(), { cache: "no-store" }),
+        fetch(ADS_API + "?t=" + Date.now(), { cache: "no-store" })
       ]);
 
       const eventsJson = await eventsRes.json();
@@ -141,7 +141,7 @@ function App() {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 500);
+    const timer = setInterval(loadData, 2000);
     return () => clearInterval(timer);
   }, []);
 
