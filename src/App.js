@@ -97,11 +97,8 @@ function normalizeEvent(raw) {
     group_type: raw.group_type ?? "-",
     selected_ad_id: raw.selected_ad_id ?? "-",
 
-    temp:
-      raw.temp ?? raw.temperature ?? null,
-
-    hum:
-      raw.hum ?? raw.humidity ?? null
+    temp: raw.temp ?? raw.temperature ?? null,
+    hum: raw.hum ?? raw.humidity ?? null
   };
 }
 
@@ -110,12 +107,13 @@ function App() {
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
 
-  const EVENTS_API = "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
-  const ADS_API = "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
+  const EVENTS_API =
+    "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
+  const ADS_API =
+    "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
 
   const loadData = async () => {
     try {
-
       setError("");
 
       const [eventsRes, adsRes] = await Promise.all([
@@ -135,11 +133,8 @@ function App() {
 
       setEvents(normalizedEvents);
       setAds(rawAds);
-
     } catch (err) {
-
       setError(String(err));
-
     }
   };
 
@@ -151,6 +146,40 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
+  /* =========================
+     DASHBOARD STATISTICS
+  ==========================*/
+
+  const totalPeople = events.reduce(
+    (sum, e) => sum + (e.person_count || 0),
+    0
+  );
+
+  const validTemps = events.filter(e => e.temp !== null);
+  const avgTemp =
+    validTemps.length > 0
+      ? validTemps.reduce((sum, e) => sum + Number(e.temp), 0) /
+        validTemps.length
+      : null;
+
+  const validHum = events.filter(e => e.hum !== null);
+  const avgHum =
+    validHum.length > 0
+      ? validHum.reduce((sum, e) => sum + Number(e.hum), 0) /
+        validHum.length
+      : null;
+
+  const validAge = events.filter(e => e.age_mid_avg !== null);
+  const avgAge =
+    validAge.length > 0
+      ? validAge.reduce((sum, e) => sum + Number(e.age_mid_avg), 0) /
+        validAge.length
+      : null;
+
+  /* =========================
+        CHART DATA
+  ==========================*/
+
   const timestamps = events.map(e => formatTime(e.ts));
   const temperatures = events.map(e => e.temp);
   const humidity = events.map(e => e.hum);
@@ -158,49 +187,60 @@ function App() {
 
   const temperatureChart = {
     labels: timestamps,
-    datasets: [{
-      label: "Temperature",
-      data: temperatures,
-      borderColor: "#38bdf8",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "Temperature",
+        data: temperatures,
+        borderColor: "#38bdf8",
+        tension: 0.3
+      }
+    ]
   };
 
   const humidityChart = {
     labels: timestamps,
-    datasets: [{
-      label: "Humidity",
-      data: humidity,
-      borderColor: "#22c55e",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "Humidity",
+        data: humidity,
+        borderColor: "#22c55e",
+        tension: 0.3
+      }
+    ]
   };
 
   const peopleChart = {
     labels: timestamps,
-    datasets: [{
-      label: "People",
-      data: peopleCounts,
-      borderColor: "#f59e0b",
-      tension: 0.3
-    }]
+    datasets: [
+      {
+        label: "People",
+        data: peopleCounts,
+        borderColor: "#f59e0b",
+        tension: 0.3
+      }
+    ]
   };
 
   let male = 0;
   let female = 0;
 
   events.forEach(e => {
-    const counts = normalizeGenderCounts(e.gender_counts, e.gender_majority);
+    const counts = normalizeGenderCounts(
+      e.gender_counts,
+      e.gender_majority
+    );
     male += counts.male;
     female += counts.female;
   });
 
   const genderChart = {
     labels: ["Male", "Female"],
-    datasets: [{
-      data: [male, female],
-      backgroundColor: ["#3b82f6", "#ec4899"]
-    }]
+    datasets: [
+      {
+        data: [male, female],
+        backgroundColor: ["#3b82f6", "#ec4899"]
+      }
+    ]
   };
 
   const ageGroups = [0, 0, 0, 0];
@@ -212,11 +252,13 @@ function App() {
 
   const ageChart = {
     labels: ["<18", "18-25", "25-40", "40+"],
-    datasets: [{
-      label: "Age Distribution",
-      data: ageGroups,
-      backgroundColor: "#22c55e"
-    }]
+    datasets: [
+      {
+        label: "Age Distribution",
+        data: ageGroups,
+        backgroundColor: "#22c55e"
+      }
+    ]
   };
 
   const adCounts = {};
@@ -230,19 +272,23 @@ function App() {
 
   const adChart = {
     labels: Object.keys(adCounts),
-    datasets: [{
-      label: "Ad Triggers",
-      data: Object.values(adCounts),
-      backgroundColor: "#f97316"
-    }]
+    datasets: [
+      {
+        label: "Ad Triggers",
+        data: Object.values(adCounts),
+        backgroundColor: "#f97316"
+      }
+    ]
   };
 
   const latestGenderCounts = latest
-    ? normalizeGenderCounts(latest.gender_counts, latest.gender_majority)
+    ? normalizeGenderCounts(
+        latest.gender_counts,
+        latest.gender_majority
+      )
     : { male: 0, female: 0 };
 
   return (
-
     <div className="dashboard">
 
       <h1>SMART SIGNAGE AI SYSTEM</h1>
@@ -252,23 +298,29 @@ function App() {
       <div className="stats">
 
         <div className="statCard">
-          <div>People</div>
-          <div className="statNumber">{latest?.person_count ?? 0}</div>
+          <div>Total People</div>
+          <div className="statNumber">{totalPeople}</div>
         </div>
 
         <div className="statCard">
           <div>Avg Age</div>
-          <div className="statNumber">{latest?.age_mid_avg ?? "-"}</div>
+          <div className="statNumber">
+            {avgAge !== null ? avgAge.toFixed(1) : "-"}
+          </div>
         </div>
 
         <div className="statCard">
-          <div>Temp</div>
-          <div className="statNumber">{latest?.temp ?? "--"}°</div>
+          <div>Avg Temp</div>
+          <div className="statNumber">
+            {avgTemp !== null ? avgTemp.toFixed(1) : "--"}°
+          </div>
         </div>
 
         <div className="statCard">
-          <div>Humidity</div>
-          <div className="statNumber">{latest?.hum ?? "--"}%</div>
+          <div>Avg Humidity</div>
+          <div className="statNumber">
+            {avgHum !== null ? avgHum.toFixed(1) : "--"}%
+          </div>
         </div>
 
       </div>
