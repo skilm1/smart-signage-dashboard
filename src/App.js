@@ -140,7 +140,7 @@ function App() {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 5000);
+    const timer = setInterval(loadData, 1000);
     return () => clearInterval(timer);
   }, []);
 
