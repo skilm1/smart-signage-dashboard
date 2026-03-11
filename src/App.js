@@ -103,6 +103,7 @@ function normalizeEvent(raw) {
 }
 
 function App() {
+
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
@@ -114,7 +115,6 @@ function App() {
 
   const loadData = async () => {
     try {
-      setError("");
 
       const [eventsRes, adsRes] = await Promise.all([
         fetch(EVENTS_API),
@@ -133,6 +133,7 @@ function App() {
 
       setEvents(normalizedEvents);
       setAds(rawAds);
+
     } catch (err) {
       setError(String(err));
     }
@@ -145,6 +146,13 @@ function App() {
   }, []);
 
   const latest = events.length > 0 ? events[0] : null;
+
+  /* -------------------- NEW PART -------------------- */
+  // 找到 latest event 对应的广告
+  const latestAd = ads.find(
+    ad => ad.ad_id === latest?.selected_ad_id
+  );
+  /* -------------------------------------------------- */
 
   /* ---------- DASHBOARD STATS ---------- */
 
@@ -277,6 +285,7 @@ function App() {
     : { male: 0, female: 0 };
 
   return (
+
     <div className="dashboard">
 
       <h1>SMART SIGNAGE AI SYSTEM</h1>
@@ -315,10 +324,8 @@ function App() {
       </div>
 
 
-      {/* MAIN GRID */}
       <div className="mainGrid">
 
-        {/* charts */}
         <div className="chart peopleTraffic">
           <h3>People Traffic</h3>
           <Line data={peopleChart}/>
@@ -350,13 +357,11 @@ function App() {
         </div>
 
 
-        {/* Ad Rules */}
         <div className="card adRules">
 
           <h2>Ad Rules</h2>
 
           <table>
-
             <thead>
               <tr>
                 <th>Ad</th>
@@ -384,7 +389,6 @@ function App() {
         </div>
 
 
-        {/* Latest */}
         <div className="card latestEvent">
 
           <h2>Latest Event</h2>
@@ -413,7 +417,6 @@ function App() {
         </div>
 
 
-        {/* Recent */}
         <div className="card recentEvents">
 
           <h2>Recent Events</h2>
@@ -434,7 +437,6 @@ function App() {
             </thead>
 
             <tbody>
-
               {events.slice(0,20).map((e,idx)=>(
                 <tr key={idx}>
                   <td>{formatTime(e.ts)}</td>
@@ -447,16 +449,32 @@ function App() {
                   <td>{e.selected_ad_id ?? "-"}</td>
                 </tr>
               ))}
-
             </tbody>
 
           </table>
+
+          {/* NEW IMAGE DISPLAY */}
+
+          {latestAd && (
+            <div className="adDisplay">
+
+              <h3>Selected Advertisement</h3>
+
+              <img
+                src={latestAd.asset_url}
+                alt="ad"
+                className="adImage"
+              />
+
+            </div>
+          )}
 
         </div>
 
       </div>
 
     </div>
+
   );
 }
 

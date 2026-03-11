@@ -66,11 +66,11 @@ margin-top:6px;
 .mainGrid{
 display:grid;
 
-/* 调整比例让右侧更宽 */
+/* 左边图表略窄 右边更宽 */
 
 grid-template-columns:1.2fr 1.2fr 1.1fr 1.5fr;
 
-/* 固定高度保持对齐 */
+/* 固定高度 */
 
 grid-template-rows:340px 340px 340px;
 
@@ -164,7 +164,27 @@ grid-row:1;
 .recentEvents{
 grid-column:4;
 grid-row:2 / span 2;
+
+/* 让内部布局上下结构 */
+
+display:flex;
+flex-direction:column;
+}
+
+
+
+/* Recent Events table 滚动 */
+
+.recentEvents table{
+min-width:100%;
+}
+
+/* 表格区域单独滚动 */
+
+.recentEvents table{
+max-height:160px;
 overflow:auto;
+display:block;
 }
 
 
@@ -176,9 +196,6 @@ width:100%;
 border-collapse:collapse;
 font-size:14px;
 margin-top:10px;
-
-/* 自动适配列宽 */
-
 table-layout:auto;
 }
 
@@ -199,10 +216,32 @@ white-space:nowrap;
 
 /* 表格滚动优化 */
 
-.recentEvents table{
+.adRules table{
 min-width:100%;
 }
 
-.adRules table{
-min-width:100%;
+
+
+/* 广告展示区域 */
+
+.adDisplay{
+margin-top:20px;
+padding-top:10px;
+border-top:1px solid #334155;
+text-align:center;
+}
+
+
+
+/* 广告图片 */
+
+.adImage{
+width:100%;
+max-height:220px;
+object-fit:contain;
+border-radius:10px;
+box-shadow:0 0 15px rgba(56,189,248,0.4);
+margin-top:10px;
+background:#0f172a;
+padding:10px;
 }
