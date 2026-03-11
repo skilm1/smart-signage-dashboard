@@ -51,7 +51,7 @@ function parseApiArray(data) {
 function normalizeGenderCounts(genderCounts, fallbackGender) {
   const result = { male: 0, female: 0 };
 
-  if (genderCounts && typeof genderCounts === "object" && !Array.isArray(genderCounts)) {
+  if (genderCounts && typeof genderCounts === "object") {
     Object.entries(genderCounts).forEach(([key, value]) => {
       const k = String(key).toLowerCase();
       const v = Number(value) || 0;
@@ -83,7 +83,6 @@ function normalizeEvent(raw) {
   return {
     device_id: raw.device_id ?? "-",
     ts: Number(raw.ts) || 0,
-
     person_count: Number(raw.person_count) || 0,
     face_count: Number(raw.face_count) || 0,
 
@@ -99,20 +98,10 @@ function normalizeEvent(raw) {
     selected_ad_id: raw.selected_ad_id ?? "-",
 
     temp:
-      raw.temp !== null && raw.temp !== undefined
-        ? Number(raw.temp)
-        : raw.temperature !== null && raw.temperature !== undefined
-          ? Number(raw.temperature)
-          : null,
+      raw.temp ?? raw.temperature ?? null,
 
     hum:
-      raw.hum !== null && raw.hum !== undefined
-        ? Number(raw.hum)
-        : raw.humidity !== null && raw.humidity !== undefined
-          ? Number(raw.humidity)
-          : null,
-
-    people: Array.isArray(raw.people) ? raw.people : []
+      raw.hum ?? raw.humidity ?? null
   };
 }
 
@@ -126,6 +115,7 @@ function App() {
 
   const loadData = async () => {
     try {
+
       setError("");
 
       const [eventsRes, adsRes] = await Promise.all([
@@ -144,9 +134,12 @@ function App() {
         .sort((a, b) => b.ts - a.ts);
 
       setEvents(normalizedEvents);
-      setAds(Array.isArray(rawAds) ? rawAds : []);
+      setAds(rawAds);
+
     } catch (err) {
+
       setError(String(err));
+
     }
   };
 
@@ -158,30 +151,45 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
-  const timestamps = events.map((e) => formatTime(e.ts));
-  const temperatures = events.map((e) => e.temp);
-  const humidity = events.map((e) => e.hum);
-  const peopleCounts = events.map((e) => e.person_count);
+  const timestamps = events.map(e => formatTime(e.ts));
+  const temperatures = events.map(e => e.temp);
+  const humidity = events.map(e => e.hum);
+  const peopleCounts = events.map(e => e.person_count);
 
   const temperatureChart = {
     labels: timestamps,
-    datasets: [{ label: "Temperature", data: temperatures, borderColor: "#38bdf8", tension: 0.3 }]
+    datasets: [{
+      label: "Temperature",
+      data: temperatures,
+      borderColor: "#38bdf8",
+      tension: 0.3
+    }]
   };
 
   const humidityChart = {
     labels: timestamps,
-    datasets: [{ label: "Humidity", data: humidity, borderColor: "#22c55e", tension: 0.3 }]
+    datasets: [{
+      label: "Humidity",
+      data: humidity,
+      borderColor: "#22c55e",
+      tension: 0.3
+    }]
   };
 
   const peopleChart = {
     labels: timestamps,
-    datasets: [{ label: "People", data: peopleCounts, borderColor: "#f59e0b", tension: 0.3 }]
+    datasets: [{
+      label: "People",
+      data: peopleCounts,
+      borderColor: "#f59e0b",
+      tension: 0.3
+    }]
   };
 
   let male = 0;
   let female = 0;
 
-  events.forEach((e) => {
+  events.forEach(e => {
     const counts = normalizeGenderCounts(e.gender_counts, e.gender_majority);
     male += counts.male;
     female += counts.female;
@@ -189,30 +197,44 @@ function App() {
 
   const genderChart = {
     labels: ["Male", "Female"],
-    datasets: [{ data: [male, female], backgroundColor: ["#3b82f6", "#ec4899"] }]
+    datasets: [{
+      data: [male, female],
+      backgroundColor: ["#3b82f6", "#ec4899"]
+    }]
   };
 
   const ageGroups = [0, 0, 0, 0];
 
-  events.forEach((e) => {
+  events.forEach(e => {
     const idx = getAgeBucketIndex(e.age_mid_avg);
-    if (idx >= 0) ageGroups[idx] += 1;
+    if (idx >= 0) ageGroups[idx]++;
   });
 
   const ageChart = {
     labels: ["<18", "18-25", "25-40", "40+"],
-    datasets: [{ label: "Age Distribution", data: ageGroups, backgroundColor: "#22c55e" }]
+    datasets: [{
+      label: "Age Distribution",
+      data: ageGroups,
+      backgroundColor: "#22c55e"
+    }]
   };
 
   const adCounts = {};
-  events.forEach((e) => {
+
+  events.forEach(e => {
     const id = e.selected_ad_id;
-    if (id && id !== "-") adCounts[id] = (adCounts[id] || 0) + 1;
+    if (id && id !== "-") {
+      adCounts[id] = (adCounts[id] || 0) + 1;
+    }
   });
 
   const adChart = {
     labels: Object.keys(adCounts),
-    datasets: [{ label: "Ad Triggers", data: Object.values(adCounts), backgroundColor: "#f97316" }]
+    datasets: [{
+      label: "Ad Triggers",
+      data: Object.values(adCounts),
+      backgroundColor: "#f97316"
+    }]
   };
 
   const latestGenderCounts = latest
@@ -220,6 +242,7 @@ function App() {
     : { male: 0, female: 0 };
 
   return (
+
     <div className="dashboard">
 
       <h1>SMART SIGNAGE AI SYSTEM</h1>
@@ -227,6 +250,7 @@ function App() {
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
 
       <div className="stats">
+
         <div className="statCard">
           <div>People</div>
           <div className="statNumber">{latest?.person_count ?? 0}</div>
@@ -246,6 +270,7 @@ function App() {
           <div>Humidity</div>
           <div className="statNumber">{latest?.hum ?? "--"}%</div>
         </div>
+
       </div>
 
       <div className="grid">
@@ -261,9 +286,12 @@ function App() {
               <p>People: {latest.person_count}</p>
               <p>Faces: {latest.face_count}</p>
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
+
               <p>
-                Gender Counts: Male {latestGenderCounts.male} / Female {latestGenderCounts.female}
+                Gender Counts: Male {latestGenderCounts.male} /
+                Female {latestGenderCounts.female}
               </p>
+
               <p>Group: {latest.group_type ?? "-"}</p>
               <p>Ad: {latest.selected_ad_id ?? "-"}</p>
             </>
@@ -278,6 +306,7 @@ function App() {
           <h2>Ad Rules</h2>
 
           <table>
+
             <thead>
               <tr>
                 <th>Ad</th>
@@ -289,7 +318,8 @@ function App() {
             </thead>
 
             <tbody>
-              {ads.map((ad) => (
+
+              {ads.map(ad => (
                 <tr key={ad.ad_id}>
                   <td>{ad.ad_id}</td>
                   <td>{ad.gender ?? "-"}</td>
@@ -298,6 +328,7 @@ function App() {
                   <td>{ad.priority ?? "-"}</td>
                 </tr>
               ))}
+
             </tbody>
 
           </table>
@@ -310,17 +341,17 @@ function App() {
 
         <div className="chart">
           <h3>People Traffic</h3>
-          <Line data={peopleChart} options={{ responsive: true, maintainAspectRatio: false }} />
+          <Line data={peopleChart} />
         </div>
 
         <div className="chart">
           <h3>Temperature</h3>
-          <Line data={temperatureChart} options={{ responsive: true, maintainAspectRatio: false }} />
+          <Line data={temperatureChart} />
         </div>
 
         <div className="chart">
           <h3>Humidity</h3>
-          <Line data={humidityChart} options={{ responsive: true, maintainAspectRatio: false }} />
+          <Line data={humidityChart} />
         </div>
 
       </div>
@@ -368,6 +399,7 @@ function App() {
           <tbody>
 
             {events.slice(0, 20).map((e, idx) => (
+
               <tr key={idx}>
                 <td>{formatTime(e.ts)}</td>
                 <td>{e.device_id}</td>
@@ -378,6 +410,7 @@ function App() {
                 <td>{e.hum ?? "-"}</td>
                 <td>{e.selected_ad_id ?? "-"}</td>
               </tr>
+
             ))}
 
           </tbody>
