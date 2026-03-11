@@ -146,9 +146,7 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
-  /* =========================
-     DASHBOARD STATISTICS
-  ==========================*/
+  /* ---------- DASHBOARD STATS ---------- */
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
@@ -158,41 +156,46 @@ function App() {
   const validTemps = events.filter(e => e.temp !== null);
   const avgTemp =
     validTemps.length > 0
-      ? validTemps.reduce((sum, e) => sum + Number(e.temp), 0) /
+      ? validTemps.reduce((s, e) => s + Number(e.temp), 0) /
         validTemps.length
       : null;
 
   const validHum = events.filter(e => e.hum !== null);
   const avgHum =
     validHum.length > 0
-      ? validHum.reduce((sum, e) => sum + Number(e.hum), 0) /
+      ? validHum.reduce((s, e) => s + Number(e.hum), 0) /
         validHum.length
       : null;
 
   const validAge = events.filter(e => e.age_mid_avg !== null);
   const avgAge =
     validAge.length > 0
-      ? validAge.reduce((sum, e) => sum + Number(e.age_mid_avg), 0) /
+      ? validAge.reduce((s, e) => s + Number(e.age_mid_avg), 0) /
         validAge.length
       : null;
 
-  /* =========================
-        CHART DATA
-  ==========================*/
+  /* ---------- CHART DATA ---------- */
 
   const timestamps = events.map(e => formatTime(e.ts));
-  const temperatures = events.map(e => e.temp);
-  const humidity = events.map(e => e.hum);
-  const peopleCounts = events.map(e => e.person_count);
+
+  const peopleChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "People",
+        data: events.map(e => e.person_count),
+        borderColor: "#f59e0b"
+      }
+    ]
+  };
 
   const temperatureChart = {
     labels: timestamps,
     datasets: [
       {
         label: "Temperature",
-        data: temperatures,
-        borderColor: "#38bdf8",
-        tension: 0.3
+        data: events.map(e => e.temp),
+        borderColor: "#38bdf8"
       }
     ]
   };
@@ -202,21 +205,8 @@ function App() {
     datasets: [
       {
         label: "Humidity",
-        data: humidity,
-        borderColor: "#22c55e",
-        tension: 0.3
-      }
-    ]
-  };
-
-  const peopleChart = {
-    labels: timestamps,
-    datasets: [
-      {
-        label: "People",
-        data: peopleCounts,
-        borderColor: "#f59e0b",
-        tension: 0.3
+        data: events.map(e => e.hum),
+        borderColor: "#22c55e"
       }
     ]
   };
@@ -225,12 +215,12 @@ function App() {
   let female = 0;
 
   events.forEach(e => {
-    const counts = normalizeGenderCounts(
+    const c = normalizeGenderCounts(
       e.gender_counts,
       e.gender_majority
     );
-    male += counts.male;
-    female += counts.female;
+    male += c.male;
+    female += c.female;
   });
 
   const genderChart = {
@@ -254,7 +244,6 @@ function App() {
     labels: ["<18", "18-25", "25-40", "40+"],
     datasets: [
       {
-        label: "Age Distribution",
         data: ageGroups,
         backgroundColor: "#22c55e"
       }
@@ -274,7 +263,6 @@ function App() {
     labels: Object.keys(adCounts),
     datasets: [
       {
-        label: "Ad Triggers",
         data: Object.values(adCounts),
         backgroundColor: "#f97316"
       }
@@ -293,8 +281,9 @@ function App() {
 
       <h1>SMART SIGNAGE AI SYSTEM</h1>
 
-      {error && <p style={{ color: "red" }}>Error: {error}</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
+      {/* STATS */}
       <div className="stats">
 
         <div className="statCard">
@@ -305,55 +294,64 @@ function App() {
         <div className="statCard">
           <div>Avg Age</div>
           <div className="statNumber">
-            {avgAge !== null ? avgAge.toFixed(1) : "-"}
+            {avgAge ? avgAge.toFixed(1) : "-"}
           </div>
         </div>
 
         <div className="statCard">
           <div>Avg Temp</div>
           <div className="statNumber">
-            {avgTemp !== null ? avgTemp.toFixed(1) : "--"}°
+            {avgTemp ? avgTemp.toFixed(1) : "--"}°
           </div>
         </div>
 
         <div className="statCard">
           <div>Avg Humidity</div>
           <div className="statNumber">
-            {avgHum !== null ? avgHum.toFixed(1) : "--"}%
+            {avgHum ? avgHum.toFixed(1) : "--"}%
           </div>
         </div>
 
       </div>
 
-      <div className="grid">
 
-        <div className="card">
+      {/* MAIN GRID */}
+      <div className="mainGrid">
 
-          <h2>Latest Event</h2>
-
-          {latest ? (
-            <>
-              <p>Device: {latest.device_id}</p>
-              <p>Timestamp: {formatTime(latest.ts)}</p>
-              <p>People: {latest.person_count}</p>
-              <p>Faces: {latest.face_count}</p>
-              <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
-
-              <p>
-                Gender Counts: Male {latestGenderCounts.male} /
-                Female {latestGenderCounts.female}
-              </p>
-
-              <p>Group: {latest.group_type ?? "-"}</p>
-              <p>Ad: {latest.selected_ad_id ?? "-"}</p>
-            </>
-          ) : (
-            <p>No data</p>
-          )}
-
+        {/* charts */}
+        <div className="chart peopleTraffic">
+          <h3>People Traffic</h3>
+          <Line data={peopleChart}/>
         </div>
 
-        <div className="card">
+        <div className="chart genderChart">
+          <h3>Gender Distribution</h3>
+          <Pie data={genderChart}/>
+        </div>
+
+        <div className="chart temperatureChart">
+          <h3>Temperature</h3>
+          <Line data={temperatureChart}/>
+        </div>
+
+        <div className="chart humidityChart">
+          <h3>Humidity</h3>
+          <Line data={humidityChart}/>
+        </div>
+
+        <div className="chart ageChart">
+          <h3>Age Distribution</h3>
+          <Bar data={ageChart}/>
+        </div>
+
+        <div className="chart adTriggerChart">
+          <h3>Ad Trigger Analytics</h3>
+          <Bar data={adChart}/>
+        </div>
+
+
+        {/* Ad Rules */}
+        <div className="card adRules">
 
           <h2>Ad Rules</h2>
 
@@ -370,7 +368,6 @@ function App() {
             </thead>
 
             <tbody>
-
               {ads.map(ad => (
                 <tr key={ad.ad_id}>
                   <td>{ad.ad_id}</td>
@@ -380,94 +377,82 @@ function App() {
                   <td>{ad.priority ?? "-"}</td>
                 </tr>
               ))}
-
             </tbody>
 
           </table>
 
         </div>
 
-      </div>
 
-      <div className="chartsGrid">
+        {/* Latest */}
+        <div className="card latestEvent">
 
-        <div className="chart">
-          <h3>People Traffic</h3>
-          <Line data={peopleChart} />
+          <h2>Latest Event</h2>
+
+          {latest ? (
+            <>
+              <p>Device: {latest.device_id}</p>
+              <p>Timestamp: {formatTime(latest.ts)}</p>
+              <p>People: {latest.person_count}</p>
+              <p>Faces: {latest.face_count}</p>
+              <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
+
+              <p>
+                Gender Counts:
+                Male {latestGenderCounts.male} /
+                Female {latestGenderCounts.female}
+              </p>
+
+              <p>Group: {latest.group_type}</p>
+              <p>Ad: {latest.selected_ad_id}</p>
+            </>
+          ) : (
+            <p>No data</p>
+          )}
+
         </div>
 
-        <div className="chart">
-          <h3>Temperature</h3>
-          <Line data={temperatureChart} />
-        </div>
 
-        <div className="chart">
-          <h3>Humidity</h3>
-          <Line data={humidityChart} />
-        </div>
+        {/* Recent */}
+        <div className="card recentEvents">
 
-      </div>
+          <h2>Recent Events</h2>
 
-      <div className="chartsGrid">
+          <table>
 
-        <div className="chart">
-          <h3>Gender Distribution</h3>
-          <Pie data={genderChart} />
-        </div>
-
-        <div className="chart">
-          <h3>Age Distribution</h3>
-          <Bar data={ageChart} />
-        </div>
-
-      </div>
-
-      <div className="chart">
-
-        <h3>Ad Trigger Analytics</h3>
-        <Bar data={adChart} />
-
-      </div>
-
-      <div className="card" style={{ marginTop: "20px" }}>
-
-        <h2>Recent Events</h2>
-
-        <table>
-
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Device</th>
-              <th>People</th>
-              <th>Faces</th>
-              <th>Average Age</th>
-              <th>Temp</th>
-              <th>Humidity</th>
-              <th>Ad</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {events.slice(0, 20).map((e, idx) => (
-
-              <tr key={idx}>
-                <td>{formatTime(e.ts)}</td>
-                <td>{e.device_id}</td>
-                <td>{e.person_count}</td>
-                <td>{e.face_count}</td>
-                <td>{e.age_mid_avg ?? "-"}</td>
-                <td>{e.temp ?? "-"}</td>
-                <td>{e.hum ?? "-"}</td>
-                <td>{e.selected_ad_id ?? "-"}</td>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Device</th>
+                <th>People</th>
+                <th>Faces</th>
+                <th>Age</th>
+                <th>Temp</th>
+                <th>Humidity</th>
+                <th>Ad</th>
               </tr>
+            </thead>
 
-            ))}
+            <tbody>
 
-          </tbody>
+              {events.slice(0,20).map((e,idx)=>(
+                <tr key={idx}>
+                  <td>{formatTime(e.ts)}</td>
+                  <td>{e.device_id}</td>
+                  <td>{e.person_count}</td>
+                  <td>{e.face_count}</td>
+                  <td>{e.age_mid_avg ?? "-"}</td>
+                  <td>{e.temp ?? "-"}</td>
+                  <td>{e.hum ?? "-"}</td>
+                  <td>{e.selected_ad_id ?? "-"}</td>
+                </tr>
+              ))}
 
-        </table>
+            </tbody>
+
+          </table>
+
+        </div>
 
       </div>
 
