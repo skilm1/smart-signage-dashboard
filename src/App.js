@@ -165,41 +165,19 @@ function App() {
 
   const temperatureChart = {
     labels: timestamps,
-    datasets: [
-      {
-        label: "Temperature",
-        data: temperatures,
-        borderColor: "#38bdf8",
-        tension: 0.3
-      }
-    ]
+    datasets: [{ label: "Temperature", data: temperatures, borderColor: "#38bdf8", tension: 0.3 }]
   };
 
   const humidityChart = {
     labels: timestamps,
-    datasets: [
-      {
-        label: "Humidity",
-        data: humidity,
-        borderColor: "#22c55e",
-        tension: 0.3
-      }
-    ]
+    datasets: [{ label: "Humidity", data: humidity, borderColor: "#22c55e", tension: 0.3 }]
   };
 
   const peopleChart = {
     labels: timestamps,
-    datasets: [
-      {
-        label: "People",
-        data: peopleCounts,
-        borderColor: "#f59e0b",
-        tension: 0.3
-      }
-    ]
+    datasets: [{ label: "People", data: peopleCounts, borderColor: "#f59e0b", tension: 0.3 }]
   };
 
-  // Gender distribution: prefer gender_counts, fallback to gender_majority
   let male = 0;
   let female = 0;
 
@@ -211,71 +189,30 @@ function App() {
 
   const genderChart = {
     labels: ["Male", "Female"],
-    datasets: [
-      {
-        data: [male, female],
-        backgroundColor: ["#3b82f6", "#ec4899"]
-      }
-    ]
+    datasets: [{ data: [male, female], backgroundColor: ["#3b82f6", "#ec4899"] }]
   };
 
-  // Age distribution: prefer people[].age, fallback to age_mid_avg
   const ageGroups = [0, 0, 0, 0];
 
   events.forEach((e) => {
-    let usedDetailedPeopleAge = false;
-
-    if (Array.isArray(e.people) && e.people.length > 0) {
-      e.people.forEach((p) => {
-        const age =
-          p?.age ??
-          p?.age_mid ??
-          p?.age_mid_avg ??
-          null;
-
-        const idx = getAgeBucketIndex(age);
-        if (idx >= 0) {
-          ageGroups[idx] += 1;
-          usedDetailedPeopleAge = true;
-        }
-      });
-    }
-
-    if (!usedDetailedPeopleAge) {
-      const idx = getAgeBucketIndex(e.age_mid_avg);
-      if (idx >= 0) ageGroups[idx] += 1;
-    }
+    const idx = getAgeBucketIndex(e.age_mid_avg);
+    if (idx >= 0) ageGroups[idx] += 1;
   });
 
   const ageChart = {
     labels: ["<18", "18-25", "25-40", "40+"],
-    datasets: [
-      {
-        label: "Age Distribution",
-        data: ageGroups,
-        backgroundColor: "#22c55e"
-      }
-    ]
+    datasets: [{ label: "Age Distribution", data: ageGroups, backgroundColor: "#22c55e" }]
   };
 
   const adCounts = {};
-
   events.forEach((e) => {
     const id = e.selected_ad_id;
-    if (id && id !== "-") {
-      adCounts[id] = (adCounts[id] || 0) + 1;
-    }
+    if (id && id !== "-") adCounts[id] = (adCounts[id] || 0) + 1;
   });
 
   const adChart = {
     labels: Object.keys(adCounts),
-    datasets: [
-      {
-        label: "Ad Triggers",
-        data: Object.values(adCounts),
-        backgroundColor: "#f97316"
-      }
-    ]
+    datasets: [{ label: "Ad Triggers", data: Object.values(adCounts), backgroundColor: "#f97316" }]
   };
 
   const latestGenderCounts = latest
@@ -284,11 +221,11 @@ function App() {
 
   return (
     <div className="dashboard">
+
       <h1>SMART SIGNAGE AI SYSTEM</h1>
 
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
 
-      {/* Stats */}
       <div className="stats">
         <div className="statCard">
           <div>People</div>
@@ -297,27 +234,24 @@ function App() {
 
         <div className="statCard">
           <div>Avg Age</div>
-          <div className="statNumber">{latest?.age_mid_avg ?? 0}</div>
+          <div className="statNumber">{latest?.age_mid_avg ?? "-"}</div>
         </div>
 
         <div className="statCard">
           <div>Temp</div>
-          <div className="statNumber">
-            {latest?.temp ?? "--"}°
-          </div>
+          <div className="statNumber">{latest?.temp ?? "--"}°</div>
         </div>
 
         <div className="statCard">
           <div>Humidity</div>
-          <div className="statNumber">
-            {latest?.hum ?? "--"}%
-          </div>
+          <div className="statNumber">{latest?.hum ?? "--"}%</div>
         </div>
       </div>
 
-      {/* Top Cards */}
       <div className="grid">
+
         <div className="card">
+
           <h2>Latest Event</h2>
 
           {latest ? (
@@ -326,8 +260,7 @@ function App() {
               <p>Timestamp: {formatTime(latest.ts)}</p>
               <p>People: {latest.person_count}</p>
               <p>Faces: {latest.face_count}</p>
-              <p>Age: {latest.age_mid_avg ?? "-"}</p>
-              <p>Gender: {latest.gender_majority ?? "-"}</p>
+              <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
               <p>
                 Gender Counts: Male {latestGenderCounts.male} / Female {latestGenderCounts.female}
               </p>
@@ -337,9 +270,11 @@ function App() {
           ) : (
             <p>No data</p>
           )}
+
         </div>
 
         <div className="card">
+
           <h2>Ad Rules</h2>
 
           <table>
@@ -358,49 +293,40 @@ function App() {
                 <tr key={ad.ad_id}>
                   <td>{ad.ad_id}</td>
                   <td>{ad.gender ?? "-"}</td>
-                  <td>
-                    {ad.age_min ?? "-"}-{ad.age_max ?? "-"}
-                  </td>
-                  <td>
-                    {ad.min_count ?? "-"}-{ad.max_count ?? "-"}
-                  </td>
+                  <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
+                  <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
                   <td>{ad.priority ?? "-"}</td>
                 </tr>
               ))}
             </tbody>
+
           </table>
+
         </div>
+
       </div>
 
-      {/* Traffic Charts */}
       <div className="chartsGrid">
+
         <div className="chart">
           <h3>People Traffic</h3>
-          <Line
-            data={peopleChart}
-            options={{ responsive: true, maintainAspectRatio: false }}
-          />
+          <Line data={peopleChart} options={{ responsive: true, maintainAspectRatio: false }} />
         </div>
 
         <div className="chart">
           <h3>Temperature</h3>
-          <Line
-            data={temperatureChart}
-            options={{ responsive: true, maintainAspectRatio: false }}
-          />
+          <Line data={temperatureChart} options={{ responsive: true, maintainAspectRatio: false }} />
         </div>
 
         <div className="chart">
           <h3>Humidity</h3>
-          <Line
-            data={humidityChart}
-            options={{ responsive: true, maintainAspectRatio: false }}
-          />
+          <Line data={humidityChart} options={{ responsive: true, maintainAspectRatio: false }} />
         </div>
+
       </div>
 
-      {/* Analytics */}
       <div className="chartsGrid">
+
         <div className="chart">
           <h3>Gender Distribution</h3>
           <Pie data={genderChart} />
@@ -410,26 +336,29 @@ function App() {
           <h3>Age Distribution</h3>
           <Bar data={ageChart} />
         </div>
+
       </div>
 
       <div className="chart">
+
         <h3>Ad Trigger Analytics</h3>
         <Bar data={adChart} />
+
       </div>
 
-      {/* Recent Events */}
       <div className="card" style={{ marginTop: "20px" }}>
+
         <h2>Recent Events</h2>
 
         <table>
+
           <thead>
             <tr>
               <th>Timestamp</th>
               <th>Device</th>
               <th>People</th>
               <th>Faces</th>
-              <th>Age</th>
-              <th>Gender</th>
+              <th>Average Age</th>
               <th>Temp</th>
               <th>Humidity</th>
               <th>Ad</th>
@@ -437,6 +366,7 @@ function App() {
           </thead>
 
           <tbody>
+
             {events.slice(0, 20).map((e, idx) => (
               <tr key={idx}>
                 <td>{formatTime(e.ts)}</td>
@@ -444,15 +374,18 @@ function App() {
                 <td>{e.person_count}</td>
                 <td>{e.face_count}</td>
                 <td>{e.age_mid_avg ?? "-"}</td>
-                <td>{e.gender_majority ?? "-"}</td>
                 <td>{e.temp ?? "-"}</td>
                 <td>{e.hum ?? "-"}</td>
                 <td>{e.selected_ad_id ?? "-"}</td>
               </tr>
             ))}
+
           </tbody>
+
         </table>
+
       </div>
+
     </div>
   );
 }
