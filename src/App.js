@@ -110,10 +110,12 @@ function App() {
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
+
   const ADS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
 
   const loadData = async () => {
+
     try {
 
       const [eventsRes, adsRes] = await Promise.all([
@@ -124,7 +126,7 @@ function App() {
       const eventsJson = await eventsRes.json();
       const adsJson = await adsRes.json();
 
-      const rawEvents = parseApiArray(eventsJson);
+      const rawEvents = parseApiArray(eventsJson); 
       const rawAds = parseApiArray(adsJson);
 
       const normalizedEvents = rawEvents
@@ -137,24 +139,32 @@ function App() {
     } catch (err) {
       setError(String(err));
     }
+
   };
 
   useEffect(() => {
+
     loadData();
+
     const timer = setInterval(loadData, 2000);
+
     return () => clearInterval(timer);
+
   }, []);
 
   const latest = events.length > 0 ? events[0] : null;
 
-  /* -------------------- NEW PART -------------------- */
-  // 找到 latest event 对应的广告
   const latestAd = ads.find(
     ad => ad.ad_id === latest?.selected_ad_id
   );
-  /* -------------------------------------------------- */
 
-  /* ---------- DASHBOARD STATS ---------- */
+  /* NEW CAMERA IMAGE */
+
+  const cameraImage = latest
+    ? `https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/${latest.device_id}/latest.jpg`
+    : null;
+
+  /* DASHBOARD STATS */
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
@@ -181,8 +191,6 @@ function App() {
       ? validAge.reduce((s, e) => s + Number(e.age_mid_avg), 0) /
         validAge.length
       : null;
-
-  /* ---------- CHART DATA ---------- */
 
   const timestamps = events.map(e => formatTime(e.ts));
 
@@ -223,12 +231,15 @@ function App() {
   let female = 0;
 
   events.forEach(e => {
+
     const c = normalizeGenderCounts(
       e.gender_counts,
       e.gender_majority
     );
+
     male += c.male;
     female += c.female;
+
   });
 
   const genderChart = {
@@ -244,8 +255,11 @@ function App() {
   const ageGroups = [0, 0, 0, 0];
 
   events.forEach(e => {
+
     const idx = getAgeBucketIndex(e.age_mid_avg);
+
     if (idx >= 0) ageGroups[idx]++;
+
   });
 
   const ageChart = {
@@ -261,10 +275,15 @@ function App() {
   const adCounts = {};
 
   events.forEach(e => {
+
     const id = e.selected_ad_id;
+
     if (id && id !== "-") {
+
       adCounts[id] = (adCounts[id] || 0) + 1;
+
     }
+
   });
 
   const adChart = {
@@ -277,13 +296,6 @@ function App() {
     ]
   };
 
-  const latestGenderCounts = latest
-    ? normalizeGenderCounts(
-        latest.gender_counts,
-        latest.gender_majority
-      )
-    : { male: 0, female: 0 };
-
   return (
 
     <div className="dashboard">
@@ -292,7 +304,6 @@ function App() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {/* STATS */}
       <div className="stats">
 
         <div className="statCard">
@@ -322,7 +333,6 @@ function App() {
         </div>
 
       </div>
-
 
       <div className="mainGrid">
 
@@ -356,117 +366,41 @@ function App() {
           <Bar data={adChart}/>
         </div>
 
-
-        <div className="card adRules">
-
-          <h2>Ad Rules</h2>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Ad</th>
-                <th>Gender</th>
-                <th>Age</th>
-                <th>Count</th>
-                <th>Priority</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {ads.map(ad => (
-                <tr key={ad.ad_id}>
-                  <td>{ad.ad_id}</td>
-                  <td>{ad.gender ?? "-"}</td>
-                  <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
-                  <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
-                  <td>{ad.priority ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-
-          </table>
-
-        </div>
-
+        {/* CAMERA IMAGE */}
 
         <div className="card latestEvent">
 
           <h2>Latest Event</h2>
 
           {latest ? (
+
             <>
+
               <p>Device: {latest.device_id}</p>
               <p>Timestamp: {formatTime(latest.ts)}</p>
               <p>People: {latest.person_count}</p>
               <p>Faces: {latest.face_count}</p>
+
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
 
-              <p>
-                Gender Counts:
-                Male {latestGenderCounts.male} /
-                Female {latestGenderCounts.female}
-              </p>
+              <h3>Camera Snapshot</h3>
 
-              <p>Group: {latest.group_type}</p>
-              <p>Ad: {latest.selected_ad_id}</p>
+              {cameraImage && (
+
+                <img
+                  src={cameraImage}
+                  alt="camera"
+                  className="cameraImage"
+                />
+
+              )}
+
             </>
+
           ) : (
+
             <p>No data</p>
-          )}
 
-        </div>
-
-
-        <div className="card recentEvents">
-
-          <h2>Recent Events</h2>
-
-          <table>
-
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Device</th>
-                <th>People</th>
-                <th>Faces</th>
-                <th>Age</th>
-                <th>Temp</th>
-                <th>Humidity</th>
-                <th>Ad</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {events.slice(0,20).map((e,idx)=>(
-                <tr key={idx}>
-                  <td>{formatTime(e.ts)}</td>
-                  <td>{e.device_id}</td>
-                  <td>{e.person_count}</td>
-                  <td>{e.face_count}</td>
-                  <td>{e.age_mid_avg ?? "-"}</td>
-                  <td>{e.temp ?? "-"}</td>
-                  <td>{e.hum ?? "-"}</td>
-                  <td>{e.selected_ad_id ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-
-          </table>
-
-          {/* NEW IMAGE DISPLAY */}
-
-          {latestAd && (
-            <div className="adDisplay">
-
-              <h3>Selected Advertisement</h3>
-
-              <img
-                src={latestAd.asset_url}
-                alt="ad"
-                className="adImage"
-              />
-
-            </div>
           )}
 
         </div>
@@ -476,6 +410,7 @@ function App() {
     </div>
 
   );
+
 }
 
 export default App;

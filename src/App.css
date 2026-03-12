@@ -245,3 +245,15 @@ margin-top:10px;
 background:#0f172a;
 padding:10px;
 }
+/* 摄像头抓拍图片 */
+
+.cameraImage{
+width:100%;
+max-height:220px;
+object-fit:cover;
+border-radius:10px;
+margin-top:12px;
+box-shadow:0 0 15px rgba(56,189,248,0.4);
+background:#0f172a;
+padding:6px;
+}
