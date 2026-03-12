@@ -1,5 +1,6 @@
 import "./App.css";
 import { useEffect, useState } from "react";
+
 import {
   Chart as ChartJS,
   LineElement,
@@ -25,11 +26,13 @@ ChartJS.register(
   BarElement
 );
 
+
 function formatTime(ts) {
   if (!ts) return "-";
   const date = new Date(ts * 1000);
   return date.toISOString().replace("T", " ").slice(0, 19);
 }
+
 
 function parseApiArray(data) {
 
@@ -48,6 +51,7 @@ function parseApiArray(data) {
 
   return [];
 }
+
 
 function normalizeGenderCounts(genderCounts, fallbackGender) {
 
@@ -80,6 +84,7 @@ function normalizeGenderCounts(genderCounts, fallbackGender) {
 
 }
 
+
 function getAgeBucketIndex(age) {
 
   const n = Number(age);
@@ -93,6 +98,7 @@ function getAgeBucketIndex(age) {
   return 3;
 
 }
+
 
 function normalizeEvent(raw) {
 
@@ -127,12 +133,11 @@ function normalizeEvent(raw) {
 
 }
 
+
 function App() {
 
   const [events, setEvents] = useState([]);
-
   const [ads, setAds] = useState([]);
-
   const [error, setError] = useState("");
 
   const EVENTS_API =
@@ -141,13 +146,16 @@ function App() {
   const ADS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
 
+
   const loadData = async () => {
 
     try {
 
       const [eventsRes, adsRes] = await Promise.all([
+
         fetch(EVENTS_API + "?t=" + Date.now(), { cache: "no-store" }),
         fetch(ADS_API + "?t=" + Date.now(), { cache: "no-store" })
+
       ]);
 
       const eventsJson = await eventsRes.json();
@@ -161,7 +169,6 @@ function App() {
         .sort((a, b) => b.ts - a.ts);
 
       setEvents(normalizedEvents);
-
       setAds(rawAds);
 
     } catch (err) {
@@ -171,6 +178,7 @@ function App() {
     }
 
   };
+
 
   useEffect(() => {
 
@@ -182,38 +190,180 @@ function App() {
 
   }, []);
 
+
   const latest = events.length > 0 ? events[0] : null;
+
 
   const latestAd = ads.find(
     ad => ad.ad_id === latest?.selected_ad_id
   );
 
-  const cameraImage = latest
-    ? `https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/${latest.device_id}/latest.jpg?t=${Date.now()}`
-    : null;
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
     0
   );
 
+
+  const validTemps = events.filter(e => e.temp !== null);
+
+  const avgTemp =
+    validTemps.length > 0
+      ? validTemps.reduce((s, e) => s + Number(e.temp), 0) /
+        validTemps.length
+      : null;
+
+
+  const validHum = events.filter(e => e.hum !== null);
+
+  const avgHum =
+    validHum.length > 0
+      ? validHum.reduce((s, e) => s + Number(e.hum), 0) /
+        validHum.length
+      : null;
+
+
+  const validAge = events.filter(e => e.age_mid_avg !== null);
+
+  const avgAge =
+    validAge.length > 0
+      ? validAge.reduce((s, e) => s + Number(e.age_mid_avg), 0) /
+        validAge.length
+      : null;
+
+
+
   const timestamps = events.map(e => formatTime(e.ts));
 
+
   const peopleChart = {
-
     labels: timestamps,
-
     datasets: [
-
       {
         label: "People",
         data: events.map(e => e.person_count),
         borderColor: "#f59e0b"
       }
+    ]
+  };
 
+
+  const temperatureChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "Temperature",
+        data: events.map(e => e.temp),
+        borderColor: "#38bdf8"
+      }
+    ]
+  };
+
+
+  const humidityChart = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: "Humidity",
+        data: events.map(e => e.hum),
+        borderColor: "#22c55e"
+      }
+    ]
+  };
+
+
+  let male = 0;
+  let female = 0;
+
+  events.forEach(e => {
+
+    const c = normalizeGenderCounts(
+      e.gender_counts,
+      e.gender_majority
+    );
+
+    male += c.male;
+    female += c.female;
+
+  });
+
+
+  const genderChart = {
+
+    labels: ["Male", "Female"],
+
+    datasets: [
+      {
+        data: [male, female],
+        backgroundColor: ["#3b82f6", "#ec4899"]
+      }
     ]
 
   };
+
+
+  const ageGroups = [0, 0, 0, 0];
+
+  events.forEach(e => {
+
+    const idx = getAgeBucketIndex(e.age_mid_avg);
+
+    if (idx >= 0) ageGroups[idx]++;
+
+  });
+
+
+  const ageChart = {
+
+    labels: ["<18", "18-25", "25-40", "40+"],
+
+    datasets: [
+      {
+        data: ageGroups,
+        backgroundColor: "#22c55e"
+      }
+    ]
+
+  };
+
+
+  const adCounts = {};
+
+  events.forEach(e => {
+
+    const id = e.selected_ad_id;
+
+    if (id && id !== "-") {
+
+      adCounts[id] = (adCounts[id] || 0) + 1;
+
+    }
+
+  });
+
+
+  const adChart = {
+
+    labels: Object.keys(adCounts),
+
+    datasets: [
+      {
+        data: Object.values(adCounts),
+        backgroundColor: "#f97316"
+      }
+    ]
+
+  };
+
+
+  const latestGenderCounts = latest
+    ? normalizeGenderCounts(
+        latest.gender_counts,
+        latest.gender_majority
+      )
+    : { male: 0, female: 0 };
+
+
 
   return (
 
@@ -230,17 +380,98 @@ function App() {
           <div className="statNumber">{totalPeople}</div>
         </div>
 
+        <div className="statCard">
+          <div>Avg Age</div>
+          <div className="statNumber">
+            {avgAge ? avgAge.toFixed(1) : "-"}
+          </div>
+        </div>
+
+        <div className="statCard">
+          <div>Avg Temp</div>
+          <div className="statNumber">
+            {avgTemp ? avgTemp.toFixed(1) : "--"}°
+          </div>
+        </div>
+
+        <div className="statCard">
+          <div>Avg Humidity</div>
+          <div className="statNumber">
+            {avgHum ? avgHum.toFixed(1) : "--"}%
+          </div>
+        </div>
+
       </div>
+
+
 
       <div className="mainGrid">
 
         <div className="chart peopleTraffic">
-
           <h3>People Traffic</h3>
-
           <Line data={peopleChart}/>
+        </div>
+
+        <div className="chart genderChart">
+          <h3>Gender Distribution</h3>
+          <Pie data={genderChart}/>
+        </div>
+
+        <div className="chart temperatureChart">
+          <h3>Temperature</h3>
+          <Line data={temperatureChart}/>
+        </div>
+
+        <div className="chart humidityChart">
+          <h3>Humidity</h3>
+          <Line data={humidityChart}/>
+        </div>
+
+        <div className="chart ageChart">
+          <h3>Age Distribution</h3>
+          <Bar data={ageChart}/>
+        </div>
+
+        <div className="chart adTriggerChart">
+          <h3>Ad Trigger Analytics</h3>
+          <Bar data={adChart}/>
+        </div>
+
+
+
+        <div className="card adRules">
+
+          <h2>Ad Rules</h2>
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Ad</th>
+                <th>Gender</th>
+                <th>Age</th>
+                <th>Count</th>
+                <th>Priority</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {ads.map(ad => (
+                <tr key={ad.ad_id}>
+                  <td>{ad.ad_id}</td>
+                  <td>{ad.gender ?? "-"}</td>
+                  <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
+                  <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
+                  <td>{ad.priority ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
 
         </div>
+
+
 
         <div className="card latestEvent">
 
@@ -260,35 +491,82 @@ function App() {
 
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
 
-              <h3>Camera Snapshot</h3>
+              <p>
+                Gender Counts:
+                Male {latestGenderCounts.male} /
+                Female {latestGenderCounts.female}
+              </p>
 
-              {cameraImage && (
+              <p>Group: {latest.group_type}</p>
 
-                <img
-                  src={cameraImage}
-                  alt="camera"
-                  className="cameraImage"
-                />
-
-              )}
-
-              <h3>Selected Advertisement</h3>
-
-              {latestAd && (
-
-                <img
-                  src={latestAd.asset_url}
-                  alt="advertisement"
-                  className="adImage"
-                />
-
-              )}
+              <p>Ad: {latest.selected_ad_id}</p>
 
             </>
 
           ) : (
 
             <p>No data</p>
+
+          )}
+
+        </div>
+
+
+
+        <div className="card recentEvents">
+
+          <h2>Recent Events</h2>
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Device</th>
+                <th>People</th>
+                <th>Faces</th>
+                <th>Age</th>
+                <th>Temp</th>
+                <th>Humidity</th>
+                <th>Ad</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {events.slice(0,20).map((e,idx)=>(
+
+                <tr key={idx}>
+                  <td>{formatTime(e.ts)}</td>
+                  <td>{e.device_id}</td>
+                  <td>{e.person_count}</td>
+                  <td>{e.face_count}</td>
+                  <td>{e.age_mid_avg ?? "-"}</td>
+                  <td>{e.temp ?? "-"}</td>
+                  <td>{e.hum ?? "-"}</td>
+                  <td>{e.selected_ad_id ?? "-"}</td>
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
+
+          {latestAd && (
+
+            <div className="adDisplay">
+
+              <h3>Selected Advertisement</h3>
+
+              <img
+                src={latestAd.asset_url}
+                alt="ad"
+                className="adImage"
+              />
+
+            </div>
 
           )}
 

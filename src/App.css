@@ -33,7 +33,6 @@ font-size:18px;
 margin-bottom:10px;
 }
 
-
 /* 顶部统计 */
 
 .stats{
@@ -59,8 +58,6 @@ font-weight:bold;
 margin-top:6px;
 }
 
-
-
 /* 主布局 */
 
 .mainGrid{
@@ -78,8 +75,6 @@ gap:25px;
 align-items:stretch;
 }
 
-
-
 /* 图表 */
 
 .chart{
@@ -96,8 +91,6 @@ flex-direction:column;
 height:260px !important;
 }
 
-
-
 /* 卡片 */
 
 .card{
@@ -111,8 +104,6 @@ height:100%;
 display:flex;
 flex-direction:column;
 }
-
-
 
 /* Grid 位置 */
 
@@ -146,8 +137,6 @@ grid-column:2;
 grid-row:3;
 }
 
-
-
 /* 右侧 */
 
 .adRules{
@@ -159,34 +148,31 @@ overflow:auto;
 .latestEvent{
 grid-column:4;
 grid-row:1;
-
-/* 允许滚动，否则两张图片可能被裁掉 */
-
-overflow:auto;
 }
 
 .recentEvents{
 grid-column:4;
 grid-row:2 / span 2;
 
-/* 上下布局 */
+/* 让内部布局上下结构 */
 
 display:flex;
 flex-direction:column;
 }
 
-
-
 /* Recent Events table 滚动 */
 
 .recentEvents table{
 min-width:100%;
+}
+
+/* 表格区域单独滚动 */
+
+.recentEvents table{
 max-height:160px;
 overflow:auto;
 display:block;
 }
-
-
 
 /* 表格 */
 
@@ -211,15 +197,11 @@ border-bottom:1px solid #334155;
 white-space:nowrap;
 }
 
-
-
 /* 表格滚动优化 */
 
 .adRules table{
 min-width:100%;
 }
-
-
 
 /* 广告展示区域 */
 
@@ -230,41 +212,15 @@ border-top:1px solid #334155;
 text-align:center;
 }
 
-
-
 /* 广告图片 */
 
 .adImage{
 width:100%;
-max-height:180px;
+max-height:220px;
 object-fit:contain;
 border-radius:10px;
 box-shadow:0 0 15px rgba(56,189,248,0.4);
 margin-top:10px;
 background:#0f172a;
 padding:10px;
-}
-
-
-
-/* 摄像头抓拍图片 */
-
-.cameraImage{
-width:100%;
-max-height:200px;
-object-fit:cover;
-border-radius:10px;
-margin-top:12px;
-margin-bottom:10px;
-box-shadow:0 0 15px rgba(56,189,248,0.4);
-background:#0f172a;
-padding:6px;
-}
-
-
-
-/* Latest Event 标题间距 */
-
-.latestEvent h3{
-margin-top:14px;
 }
