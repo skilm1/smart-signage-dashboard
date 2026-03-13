@@ -139,6 +139,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
+  const [cameraImage, setCameraImage] = useState(null);
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
@@ -178,23 +179,58 @@ function App() {
     }
 
   };
+const loadCameraImage = async () => {
 
+  try {
+
+    const url =
+      "https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/XIAO_ESP32S3_Sense_01/";
+
+    const res = await fetch(url);
+    const text = await res.text();
+
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "application/xml");
+
+    const keys = [...xml.getElementsByTagName("Key")]
+      .map(k => k.textContent)
+      .filter(k => k.endsWith(".jpg"));
+
+    if (keys.length === 0) return;
+
+    const latestKey = keys.sort().reverse()[0];
+
+    const imgUrl =
+      "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
+
+    setCameraImage(imgUrl + "?t=" + Date.now());
+
+  } catch (err) {
+
+    console.log("camera load error", err);
+
+  }
+
+};
 
   useEffect(() => {
 
+  loadData();
+  loadCameraImage();
+
+  const timer = setInterval(() => {
+
     loadData();
+    loadCameraImage();
 
-    const timer = setInterval(loadData, 2000);
+  }, 2000);
 
-    return () => clearInterval(timer);
+  return () => clearInterval(timer);
 
-  }, []);
+}, []);
 
 
   const latest = events.length > 0 ? events[0] : null;
-  const cameraImage = latest
-    ? `https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/${latest.device_id}/latest.jpg?t=${Date.now()}`
-    : null;
 
   const latestAd = ads.find(
     ad => ad.ad_id === latest?.selected_ad_id
