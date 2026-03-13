@@ -180,47 +180,34 @@ function App() {
     try {
 
       const url =
-      "https://elec0130-data.s3.eu-north-1.amazonaws.com/?list-type=2&prefix=upload_photos/XIAO_ESP32S3_Sense_01/";
+        "https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/XIAO_ESP32S3_Sense_01/";
 
-    const res = await fetch(url);
-    const text = await res.text();
+      const res = await fetch(url);
+      const text = await res.text();
 
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "application/xml");
 
-    const contents = Array.from(xml.getElementsByTagName("Contents"));
+      const keys = [...xml.getElementsByTagName("Key")]
+        .map(k => k.textContent)
+        .filter(k => k.endsWith(".jpg"));
 
       if (keys.length === 0) return;
 
-      contents.sort((a, b) => {
+      const latestKey = keys.sort().reverse()[0];
 
-      const dateA = new Date(
-        a.getElementsByTagName("LastModified")[0].textContent
-      );
+      const imgUrl =
+        "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
 
-      const dateB = new Date(
-        b.getElementsByTagName("LastModified")[0].textContent
-      );
+      setCameraImage(imgUrl + "?t=" + Date.now());
 
-      return dateB - dateA;
+    } catch (err) {
 
-    });
+      console.log("camera load error", err);
 
-    const latestKey =
-      contents[0].getElementsByTagName("Key")[0].textContent;
+    }
 
-    const imgUrl =
-      "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
-
-    setCameraImage(imgUrl + "?t=" + Date.now());
-
-  } catch (err) {
-
-    console.log("camera load error", err);
-
-  }
-
-};
+  };
 
 
   useEffect(() => {
