@@ -26,13 +26,11 @@ ChartJS.register(
   BarElement
 );
 
-
 function formatTime(ts) {
   if (!ts) return "-";
   const date = new Date(ts * 1000);
   return date.toISOString().replace("T", " ").slice(0, 19);
 }
-
 
 function parseApiArray(data) {
 
@@ -51,7 +49,6 @@ function parseApiArray(data) {
 
   return [];
 }
-
 
 function normalizeGenderCounts(genderCounts, fallbackGender) {
 
@@ -84,7 +81,6 @@ function normalizeGenderCounts(genderCounts, fallbackGender) {
 
 }
 
-
 function getAgeBucketIndex(age) {
 
   const n = Number(age);
@@ -98,7 +94,6 @@ function getAgeBucketIndex(age) {
   return 3;
 
 }
-
 
 function normalizeEvent(raw) {
 
@@ -132,7 +127,6 @@ function normalizeEvent(raw) {
   };
 
 }
-
 
 function App() {
 
@@ -179,55 +173,58 @@ function App() {
     }
 
   };
-const loadCameraImage = async () => {
 
-  try {
 
-    const url =
-      "https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/XIAO_ESP32S3_Sense_01/";
+  const loadCameraImage = async () => {
 
-    const res = await fetch(url);
-    const text = await res.text();
+    try {
 
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, "application/xml");
+      const url =
+        "https://elec0130-data.s3.eu-north-1.amazonaws.com/?list-type=2&prefix=upload_photos/XIAO_ESP32S3_Sense_01/";
 
-    const keys = [...xml.getElementsByTagName("Key")]
-      .map(k => k.textContent)
-      .filter(k => k.endsWith(".jpg"));
+      const res = await fetch(url);
+      const text = await res.text();
 
-    if (keys.length === 0) return;
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, "application/xml");
 
-    const latestKey = keys.sort().reverse()[0];
+      const keys = [...xml.getElementsByTagName("Key")]
+        .map(k => k.textContent)
+        .filter(k => k.endsWith(".jpg"));
 
-    const imgUrl =
-      "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
+      if (keys.length === 0) return;
 
-    setCameraImage(imgUrl + "?t=" + Date.now());
+      const latestKey = keys.sort().reverse()[0];
 
-  } catch (err) {
+      const imgUrl =
+        "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
 
-    console.log("camera load error", err);
+      setCameraImage(imgUrl + "?t=" + Date.now());
 
-  }
+    } catch (err) {
 
-};
+      console.log("camera load error", err);
+
+    }
+
+  };
+
 
   useEffect(() => {
-
-  loadData();
-  loadCameraImage();
-
-  const timer = setInterval(() => {
 
     loadData();
     loadCameraImage();
 
-  }, 2000);
+    const timer = setInterval(() => {
 
-  return () => clearInterval(timer);
+      loadData();
+      loadCameraImage();
 
-}, []);
+    }, 2000);
+
+    return () => clearInterval(timer);
+
+  }, []);
 
 
   const latest = events.length > 0 ? events[0] : null;
@@ -268,7 +265,6 @@ const loadCameraImage = async () => {
       ? validAge.reduce((s, e) => s + Number(e.age_mid_avg), 0) /
         validAge.length
       : null;
-
 
 
   const timestamps = events.map(e => formatTime(e.ts));
@@ -402,7 +398,6 @@ const loadCameraImage = async () => {
     : { male: 0, female: 0 };
 
 
-
   return (
 
     <div className="dashboard">
@@ -528,6 +523,7 @@ const loadCameraImage = async () => {
               <p>Faces: {latest.face_count}</p>
 
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
+
               <h3>Camera Snapshot</h3>
 
               {cameraImage && (
@@ -537,6 +533,7 @@ const loadCameraImage = async () => {
                   className="cameraImage"
                 />
               )}
+
               <p>
                 Gender Counts:
                 Male {latestGenderCounts.male} /
