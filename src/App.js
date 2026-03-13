@@ -192,7 +192,9 @@ function App() {
 
 
   const latest = events.length > 0 ? events[0] : null;
-
+  const cameraImage = latest
+    ? `https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/${latest.device_id}/latest.jpg?t=${Date.now()}`
+    : null;
 
   const latestAd = ads.find(
     ad => ad.ad_id === latest?.selected_ad_id
@@ -490,7 +492,15 @@ function App() {
               <p>Faces: {latest.face_count}</p>
 
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
+              <h3>Camera Snapshot</h3>
 
+              {cameraImage && (
+                <img
+                  src={cameraImage}
+                  alt="camera"
+                  className="cameraImage"
+                />
+              )}
               <p>
                 Gender Counts:
                 Male {latestGenderCounts.male} /
