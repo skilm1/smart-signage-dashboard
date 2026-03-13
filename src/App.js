@@ -194,20 +194,35 @@ function App() {
 
       if (keys.length === 0) return;
 
-      const latestKey = keys.sort().reverse()[0];
+      contents.sort((a, b) => {
 
-      const imgUrl =
-        "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
+      const dateA = new Date(
+        a.getElementsByTagName("LastModified")[0].textContent
+      );
 
-      setCameraImage(imgUrl + "?t=" + Date.now());
+      const dateB = new Date(
+        b.getElementsByTagName("LastModified")[0].textContent
+      );
 
-    } catch (err) {
+      return dateB - dateA;
 
-      console.log("camera load error", err);
+    });
 
-    }
+    const latestKey =
+      contents[0].getElementsByTagName("Key")[0].textContent;
 
-  };
+    const imgUrl =
+      "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
+
+    setCameraImage(imgUrl + "?t=" + Date.now());
+
+  } catch (err) {
+
+    console.log("camera load error", err);
+
+  }
+
+};
 
 
   useEffect(() => {
