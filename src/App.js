@@ -135,6 +135,7 @@ function App() {
   const [error, setError] = useState("");
   const [cameraImage, setCameraImage] = useState(null);
   const [adIndex, setAdIndex] = useState(0);
+  const [overrideAd, setOverrideAd] = useState(null);
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
@@ -241,9 +242,29 @@ function App() {
   }, [ads]);
 
   const latest = events.length > 0 ? events[0] : null;
+  useEffect(() => {
 
+  if (!latest || !ads.length) return;
 
-  const currentAd = ads.length > 0 ? ads[adIndex] : null;
+  if (latest.selected_ad_id && latest.selected_ad_id !== "-") {
+
+    const ad = ads.find(a => a.ad_id === latest.selected_ad_id);
+
+    if (ad) {
+
+      setOverrideAd(ad);
+
+      setTimeout(() => {
+        setOverrideAd(null);
+      }, 10000); // AI广告显示10秒
+
+    }
+
+  }
+
+}, [latest, ads]);
+
+  const currentAd = overrideAd ? overrideAd : (ads.length > 0 ? ads[adIndex] : null);
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
