@@ -5,10 +5,10 @@ font-family:Arial;
 margin:0;
 }
 
-/* Dashboard 居中 */
+/* Dashboard 宽度增加 */
 
 .dashboard{
-max-width:1200px;
+max-width:1500px;
 margin:0 auto;
 padding:20px 10px;
 box-sizing:border-box;
@@ -70,7 +70,6 @@ grid-template-rows:260px 260px 260px;
 
 gap:18px;
 align-items:stretch;
-justify-content:center;
 width:100%;
 }
 
@@ -147,13 +146,17 @@ overflow-y:auto;
 .latestEvent{
 grid-column:4;
 grid-row:1;
+min-height:260px;
 }
 
 .recentEvents{
 grid-column:4;
 grid-row:2 / span 2;
+
 display:flex;
 flex-direction:column;
+
+margin-top:6px;
 }
 
 /* Recent Events 表格 */
@@ -207,8 +210,8 @@ text-align:center;
 
 .adImage{
 
-width:220px;
-max-height:130px;
+width:180px;
+max-height:110px;
 
 object-fit:contain;
 
