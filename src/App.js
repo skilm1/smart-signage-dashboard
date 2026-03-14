@@ -242,9 +242,7 @@ function App() {
 
   const latest = events.length > 0 ? events[0] : null;
 
-  const latestAd = ads.find(
-    ad => ad.ad_id === latest?.selected_ad_id
-  );
+
   const currentAd = ads.length > 0 ? ads[adIndex] : null;
 
   const totalPeople = events.reduce(
