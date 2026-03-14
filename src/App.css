@@ -215,21 +215,30 @@ text-align:center;
 /* 广告图片 */
 
 .adImage{
-width:100%;
-max-height:220px;
+
+width:180px;        
+max-height:180px;   
+
 object-fit:contain;
+
 border-radius:10px;
-box-shadow:0 0 15px rgba(56,189,248,0.4);
-margin-top:10px;
+
+box-shadow:0 0 12px rgba(56,189,248,0.35);
+
+margin:10px auto;   
+
+display:block;
+
 background:#0f172a;
-padding:10px;
+padding:6px;
+
 }
 
 .cameraImage{
-width:100%;
-max-height:200px;
+width:150%;
+max-height:150px;
 object-fit:cover;
 border-radius:10px;
 margin-top:10px;
-box-shadow:0 0 15px rgba(56,189,248,0.4);
+box-shadow:0 0 12px rgba(56,189,248,0.35);
 }
