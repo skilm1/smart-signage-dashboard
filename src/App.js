@@ -134,6 +134,7 @@ function App() {
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
   const [cameraImage, setCameraImage] = useState(null);
+  const [adIndex, setAdIndex] = useState(0);
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
@@ -220,19 +221,31 @@ function App() {
       loadData();
       loadCameraImage();
 
-    }, 2000);
+    }, 4000);
 
     return () => clearInterval(timer);
 
   }, []);
+  useEffect(() => {
 
+    if (ads.length === 0) return;
+
+    const timer = setInterval(() => {
+
+      setAdIndex(prev => (prev + 1) % ads.length);
+
+    }, 5000);
+
+    return () => clearInterval(timer);
+
+  }, [ads]);
 
   const latest = events.length > 0 ? events[0] : null;
 
   const latestAd = ads.find(
     ad => ad.ad_id === latest?.selected_ad_id
   );
-
+  const currentAd = ads.length > 0 ? ads[adIndex] : null;
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
@@ -597,18 +610,18 @@ function App() {
           </table>
 
 
-          {latestAd && (
+          {currentAd && (
 
             <div className="adDisplay">
 
-              <h3>Selected Advertisement</h3>
+              <h3>Advertisement Carousel</h3>
 
               <img
-                src={latestAd.asset_url}
+                src={currentAd.asset_url}
                 alt="ad"
                 className="adImage"
               />
-
+              <p>Ad ID: {currentAd.ad_id}</p>
             </div>
 
           )}
