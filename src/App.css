@@ -190,13 +190,13 @@ border-bottom:1px solid #334155;
 white-space:nowrap;
 }
 
-/* 表格 hover 效果 */
+/* 表格 hover */
 
 tr:hover{
 background:#263244;
 }
 
-/* AdRules（页面底部） */
+/* AdRules（底部） */
 
 .adRules{
 margin-top:30px;
@@ -211,6 +211,13 @@ overflow-x:auto;
 
 .adRules td:last-child{
 text-align:center;
+}
+
+/* Resume 按钮区域 */
+
+.adRules button{
+display:block;
+margin:10px auto;
 }
 
 /* 广告展示 */
@@ -256,7 +263,7 @@ margin-top:10px;
 box-shadow:0 0 10px rgba(56,189,248,0.35);
 }
 
-/* 控制广告按钮 */
+/* 控制按钮 */
 
 .controlBtn{
 background:#38bdf8;

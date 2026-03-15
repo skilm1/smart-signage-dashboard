@@ -243,6 +243,38 @@ const forceAdToScreen = async (ad) => {
   }
 
 };
+const resumeAutoLoop = async () => {
+
+  try {
+
+    const payload = {
+      ad_id: "",
+      duration_sec: 0,
+      asset_url: "",
+      manual_override: false
+    };
+
+    const res = await fetch(CONTROL_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error("resume failed");
+    }
+
+    setControlMsg("Auto rotation resumed");
+
+  } catch (err) {
+
+    setControlMsg("Resume failed");
+
+  }
+
+};
 
  useEffect(() => {
     loadData();
@@ -624,6 +656,13 @@ const currentAd = shadowAd;
     <div className="card adRules">
 
       <h2>Ad Rules</h2>
+
+      <button
+      className="controlBtn"
+      onClick={resumeAutoLoop}
+      >
+      Resume Auto Rotation
+      </button>
       {controlMsg && (
         <p style={{color:"#38bdf8", marginBottom:"10px"}}>
           {controlMsg}
