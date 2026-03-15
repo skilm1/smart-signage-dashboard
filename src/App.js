@@ -1,6 +1,5 @@
 import "./App.css";
 import { useEffect, useState } from "react";
-import mqtt from "mqtt";
 
 import {
   Chart as ChartJS,
@@ -134,16 +133,15 @@ function App() {
   const [events, setEvents] = useState([]);
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
-  const [cameraImage, setCameraImage] = useState(null);
-  const [adIndex, setAdIndex] = useState(0);
-  const [mqttAds, setMqttAds] = useState([]);
+  const [shadowAd, setShadowAd] = useState(null);
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
 
   const ADS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
-
+  const SHADOW_AD_API =
+    "https://sej6ilgsac3iaogdemhysilenu0ckwjj.lambda-url.eu-north-1.on.aws/";
 
   const loadData = async () => {
 
@@ -177,156 +175,58 @@ function App() {
 
   };
 
+  const loadLatestAdFromShadow = async () => {
 
-  const loadCameraImage = async () => {
+  try {
 
-    try {
+    const res = await fetch(
+      SHADOW_AD_API + "?t=" + Date.now(),
+      { cache: "no-store" }
+    );
 
-      const url =
-        "https://elec0130-data.s3.eu-north-1.amazonaws.com/upload_photos/XIAO_ESP32S3_Sense_01/";
-
-      const res = await fetch(url);
-      const text = await res.text();
-
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, "application/xml");
-
-      const keys = [...xml.getElementsByTagName("Key")]
-        .map(k => k.textContent)
-        .filter(k => k.endsWith(".jpg"));
-
-      if (keys.length === 0) return;
-
-      const latestKey = keys.sort().reverse()[0];
-
-      const imgUrl =
-        "https://elec0130-data.s3.eu-north-1.amazonaws.com/" + latestKey;
-
-      setCameraImage(imgUrl + "?t=" + Date.now());
-
-    } catch (err) {
-
-      console.log("camera load error", err);
-
+    if (!res.ok) {
+      throw new Error("shadow api failed: " + res.status);
     }
 
-  };
+    const data = await res.json();
 
+    console.log("shadow ad:", data);
 
-  useEffect(() => {
+    setShadowAd(data);
 
-  loadData();
-  //loadCameraImage();
+  } catch (err) {
 
-  const timer = setInterval(() => {
+    console.log("shadow fetch error", err);
 
-    loadData();
-    //loadCameraImage();
-
-  }, 4000);
-
-  return () => clearInterval(timer);
-
-}, []);
-
-useEffect(() => {
-  console.log("MQTT useEffect started");
-
-  const client = mqtt.connect(
-    "wss://a2lmy4dy8vrxyo-ats.iot.eu-north-1.amazonaws.com/mqtt",
-    {
-      connectTimeout: 10000,
-      reconnectPeriod: 5000,
-      clean: true
-    }
-  );
-
-  client.on("connect", () => {
-    console.log("MQTT connected");
-    console.log("Subscribing to topic: xiao/ad/command/XIAO_ESP32S3_Sense_01");
-
-    client.subscribe("xiao/ad/command/XIAO_ESP32S3_Sense_01", (err) => {
-      if (err) {
-        console.log("MQTT subscribe error:", err);
-      } else {
-        console.log("MQTT subscribe success");
-      }
-    });
-  });
-
-  client.on("message", (topic, message) => {
-    console.log("MQTT message received:", topic, message.toString());
-
-    try {
-      const data = JSON.parse(message.toString());
-
-      if (data.type === "ad_update" && data.asset_url) {
-        setMqttAds(prev => {
-          const index = prev.findIndex(a => a.ad_id === data.ad_id);
-
-          if (index !== -1) {
-            const updated = [...prev];
-            updated[index] = data;
-            return updated;
-          }
-
-          return [...prev, data];
-        });
-      }
-    } catch (err) {
-      console.log("MQTT parse error:", err);
-    }
-  });
-
-  client.on("error", (err) => {
-    console.log("MQTT error:", err);
-  });
-
-  client.on("close", () => {
-    console.log("MQTT connection closed");
-  });
-
-  client.on("offline", () => {
-    console.log("MQTT offline");
-  });
-
-  client.on("reconnect", () => {
-    console.log("MQTT reconnecting...");
-  });
-
-  return () => {
-    console.log("MQTT cleanup");
-    client.end(true);
-  };
-}, []);
-
-useEffect(() => {
-
-  if (mqttAds.length === 0) return;
-
-  const currentDuration =
-    (mqttAds[adIndex]?.duration_sec || 5) * 1000;
-
-  const timer = setTimeout(() => {
-
-    setAdIndex(prev => (prev + 1) % mqttAds.length);
-
-  }, currentDuration);
-
-  return () => clearTimeout(timer);
-
-}, [mqttAds, adIndex]);
-
-useEffect(() => {
-
-  if (adIndex >= mqttAds.length && mqttAds.length > 0) {
-    setAdIndex(0);
   }
 
-}, [mqttAds, adIndex]);
+};
+
+
+ useEffect(() => {
+    loadData();
+    
+
+    const timer = setInterval(() => {
+      loadData();
+      
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    loadLatestAdFromShadow();
+
+    const timer = setInterval(() => {
+      loadLatestAdFromShadow();
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
 const latest = events.length > 0 ? events[0] : null;
-const currentAd = mqttAds.length > 0 ? mqttAds[adIndex] : null;
+const currentAd = shadowAd;
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
@@ -618,16 +518,6 @@ const currentAd = mqttAds.length > 0 ? mqttAds[adIndex] : null;
 
               <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
 
-              <h3>Camera Snapshot</h3>
-
-              {cameraImage && (
-                <img
-                  src={cameraImage}
-                  alt="camera"
-                  className="cameraImage"
-                />
-              )}
-
               <p>
                 Gender Counts:
                 Male {latestGenderCounts.male} /
@@ -691,11 +581,11 @@ const currentAd = mqttAds.length > 0 ? mqttAds[adIndex] : null;
           </table>
 
 
-          {currentAd && (
+          {currentAd && currentAd.asset_url && (
 
             <div className="adDisplay">
 
-              <h3>Advertisement Carousel</h3>
+              <h3>Current Advertisement</h3>
 
               <img
                 src={currentAd.asset_url}
@@ -703,6 +593,7 @@ const currentAd = mqttAds.length > 0 ? mqttAds[adIndex] : null;
                 className="adImage"
               />
               <p>Ad ID: {currentAd.ad_id}</p>
+              <p>Duration: {currentAd.duration_sec}s</p>
             </div>
 
           )}
