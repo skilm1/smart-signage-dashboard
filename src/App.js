@@ -1,5 +1,6 @@
 import "./App.css";
 import { useEffect, useState } from "react";
+import mqtt from "mqtt";
 
 import {
   Chart as ChartJS,
@@ -135,7 +136,7 @@ function App() {
   const [error, setError] = useState("");
   const [cameraImage, setCameraImage] = useState(null);
   const [adIndex, setAdIndex] = useState(0);
-  const [overrideAd, setOverrideAd] = useState(null);
+  const [mqttAds, setMqttAds] = useState([]);
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
@@ -214,57 +215,118 @@ function App() {
 
   useEffect(() => {
 
+  loadData();
+  //loadCameraImage();
+
+  const timer = setInterval(() => {
+
     loadData();
-    loadCameraImage();
+    //loadCameraImage();
 
-    const timer = setInterval(() => {
+  }, 4000);
 
-      loadData();
-      loadCameraImage();
+  return () => clearInterval(timer);
 
-    }, 4000);
+}, []);
 
-    return () => clearInterval(timer);
+useEffect(() => {
+  console.log("MQTT useEffect started");
 
-  }, []);
-  useEffect(() => {
-
-    if (ads.length === 0) return;
-
-    const timer = setInterval(() => {
-
-      setAdIndex(prev => (prev + 1) % ads.length);
-
-    }, 5000);
-
-    return () => clearInterval(timer);
-
-  }, [ads]);
-
-  const latest = events.length > 0 ? events[0] : null;
-  useEffect(() => {
-
-  if (!latest || !ads.length) return;
-
-  if (latest.selected_ad_id && latest.selected_ad_id !== "-") {
-
-    const ad = ads.find(a => a.ad_id === latest.selected_ad_id);
-
-    if (ad) {
-
-      setOverrideAd(ad);
-
-      setTimeout(() => {
-        setOverrideAd(null);
-      }, 10000); // AI广告显示10秒
-
+  const client = mqtt.connect(
+    "wss://a2lmy4dy8vrxyo-ats.iot.eu-north-1.amazonaws.com/mqtt",
+    {
+      connectTimeout: 10000,
+      reconnectPeriod: 5000,
+      clean: true
     }
+  );
 
+  client.on("connect", () => {
+    console.log("MQTT connected");
+    console.log("Subscribing to topic: xiao/ad/command/XIAO_ESP32S3_Sense_01");
+
+    client.subscribe("xiao/ad/command/XIAO_ESP32S3_Sense_01", (err) => {
+      if (err) {
+        console.log("MQTT subscribe error:", err);
+      } else {
+        console.log("MQTT subscribe success");
+      }
+    });
+  });
+
+  client.on("message", (topic, message) => {
+    console.log("MQTT message received:", topic, message.toString());
+
+    try {
+      const data = JSON.parse(message.toString());
+
+      if (data.type === "ad_update" && data.asset_url) {
+        setMqttAds(prev => {
+          const index = prev.findIndex(a => a.ad_id === data.ad_id);
+
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = data;
+            return updated;
+          }
+
+          return [...prev, data];
+        });
+      }
+    } catch (err) {
+      console.log("MQTT parse error:", err);
+    }
+  });
+
+  client.on("error", (err) => {
+    console.log("MQTT error:", err);
+  });
+
+  client.on("close", () => {
+    console.log("MQTT connection closed");
+  });
+
+  client.on("offline", () => {
+    console.log("MQTT offline");
+  });
+
+  client.on("reconnect", () => {
+    console.log("MQTT reconnecting...");
+  });
+
+  return () => {
+    console.log("MQTT cleanup");
+    client.end(true);
+  };
+}, []);
+
+useEffect(() => {
+
+  if (mqttAds.length === 0) return;
+
+  const currentDuration =
+    (mqttAds[adIndex]?.duration_sec || 5) * 1000;
+
+  const timer = setTimeout(() => {
+
+    setAdIndex(prev => (prev + 1) % mqttAds.length);
+
+  }, currentDuration);
+
+  return () => clearTimeout(timer);
+
+}, [mqttAds, adIndex]);
+
+useEffect(() => {
+
+  if (adIndex >= mqttAds.length && mqttAds.length > 0) {
+    setAdIndex(0);
   }
 
-}, [latest, ads]);
+}, [mqttAds, adIndex]);
 
-  const currentAd = overrideAd ? overrideAd : (ads.length > 0 ? ads[adIndex] : null);
+const latest = events.length > 0 ? events[0] : null;
+const currentAd = mqttAds.length > 0 ? mqttAds[adIndex] : null;
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
