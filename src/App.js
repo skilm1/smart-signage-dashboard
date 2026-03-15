@@ -299,7 +299,19 @@ const resumeAutoLoop = async () => {
   }, []);
 
 const latest = events.length > 0 ? events[0] : null;
-const currentAd = shadowAd;
+let currentAd = shadowAd;
+
+if (!shadowAd || !shadowAd.asset_url) {
+
+  if (latest && latest.selected_ad_id) {
+    const adFromEvent = ads.find(a => a.ad_id === latest.selected_ad_id);
+
+    if (adFromEvent) {
+      currentAd = adFromEvent;
+    }
+  }
+
+}
 
   const totalPeople = events.reduce(
     (sum, e) => sum + (e.person_count || 0),
