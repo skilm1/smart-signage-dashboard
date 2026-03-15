@@ -394,217 +394,231 @@ const currentAd = shadowAd;
 
   return (
 
-    <div className="dashboard">
+  <div className="dashboard">
 
-      <h1>SMART SIGNAGE AI SYSTEM</h1>
+    <h1>SMART SIGNAGE AI SYSTEM</h1>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <div className="stats">
+    {/* Stats */}
 
-        <div className="statCard">
-          <div>Total People</div>
-          <div className="statNumber">{totalPeople}</div>
+    <div className="stats">
+
+      <div className="statCard">
+        <div>Total People</div>
+        <div className="statNumber">{totalPeople}</div>
+      </div>
+
+      <div className="statCard">
+        <div>Avg Age</div>
+        <div className="statNumber">
+          {avgAge ? avgAge.toFixed(1) : "-"}
         </div>
+      </div>
 
-        <div className="statCard">
-          <div>Avg Age</div>
-          <div className="statNumber">
-            {avgAge ? avgAge.toFixed(1) : "-"}
-          </div>
+      <div className="statCard">
+        <div>Avg Temp</div>
+        <div className="statNumber">
+          {avgTemp ? avgTemp.toFixed(1) : "--"}°
         </div>
+      </div>
 
-        <div className="statCard">
-          <div>Avg Temp</div>
-          <div className="statNumber">
-            {avgTemp ? avgTemp.toFixed(1) : "--"}°
-          </div>
+      <div className="statCard">
+        <div>Avg Humidity</div>
+        <div className="statNumber">
+          {avgHum ? avgHum.toFixed(1) : "--"}%
         </div>
+      </div>
 
-        <div className="statCard">
-          <div>Avg Humidity</div>
-          <div className="statNumber">
-            {avgHum ? avgHum.toFixed(1) : "--"}%
-          </div>
-        </div>
+    </div>
+
+
+    {/* Main Grid */}
+
+    <div className="mainGrid">
+
+      <div className="chart peopleTraffic">
+        <h3>People Traffic</h3>
+        <Line data={peopleChart}/>
+      </div>
+
+      <div className="chart genderChart">
+        <h3>Gender Distribution</h3>
+        <Pie data={genderChart}/>
+      </div>
+
+      <div className="chart temperatureChart">
+        <h3>Temperature</h3>
+        <Line data={temperatureChart}/>
+      </div>
+
+      <div className="chart humidityChart">
+        <h3>Humidity</h3>
+        <Line data={humidityChart}/>
+      </div>
+
+      <div className="chart ageChart">
+        <h3>Age Distribution</h3>
+        <Bar data={ageChart}/>
+      </div>
+
+      <div className="chart adTriggerChart">
+        <h3>Ad Trigger Analytics</h3>
+        <Bar data={adChart}/>
+      </div>
+
+
+      {/* Latest Event */}
+
+      <div className="card latestEvent">
+
+        <h2>Latest Event</h2>
+
+        {latest ? (
+
+          <>
+
+            <p>Device: {latest.device_id}</p>
+
+            <p>Timestamp: {formatTime(latest.ts)}</p>
+
+            <p>People: {latest.person_count}</p>
+
+            <p>Faces: {latest.face_count}</p>
+
+            <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
+
+            <p>
+              Gender Counts:
+              Male {latestGenderCounts.male} /
+              Female {latestGenderCounts.female}
+            </p>
+
+            <p>Group: {latest.group_type}</p>
+
+            <p>Ad: {latest.selected_ad_id}</p>
+
+          </>
+
+        ) : (
+
+          <p>No data</p>
+
+        )}
 
       </div>
 
 
+      {/* Recent Events */}
 
-      <div className="mainGrid">
+      <div className="card recentEvents">
 
-        <div className="chart peopleTraffic">
-          <h3>People Traffic</h3>
-          <Line data={peopleChart}/>
-        </div>
+        <h2>Recent Events</h2>
 
-        <div className="chart genderChart">
-          <h3>Gender Distribution</h3>
-          <Pie data={genderChart}/>
-        </div>
+        <table>
 
-        <div className="chart temperatureChart">
-          <h3>Temperature</h3>
-          <Line data={temperatureChart}/>
-        </div>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Device</th>
+              <th>People</th>
+              <th>Faces</th>
+              <th>Age</th>
+              <th>Temp</th>
+              <th>Humidity</th>
+              <th>Ad</th>
+            </tr>
+          </thead>
 
-        <div className="chart humidityChart">
-          <h3>Humidity</h3>
-          <Line data={humidityChart}/>
-        </div>
+          <tbody>
 
-        <div className="chart ageChart">
-          <h3>Age Distribution</h3>
-          <Bar data={ageChart}/>
-        </div>
+            {events.slice(0,20).map((e,idx)=>(
 
-        <div className="chart adTriggerChart">
-          <h3>Ad Trigger Analytics</h3>
-          <Bar data={adChart}/>
-        </div>
-
-
-
-        <div className="card adRules">
-
-          <h2>Ad Rules</h2>
-
-          <table>
-
-            <thead>
-              <tr>
-                <th>Ad</th>
-                <th>Gender</th>
-                <th>Age</th>
-                <th>Count</th>
-                <th>Priority</th>
+              <tr key={idx}>
+                <td>{formatTime(e.ts)}</td>
+                <td>{e.device_id}</td>
+                <td>{e.person_count}</td>
+                <td>{e.face_count}</td>
+                <td>{e.age_mid_avg ?? "-"}</td>
+                <td>{e.temp ?? "-"}</td>
+                <td>{e.hum ?? "-"}</td>
+                <td>{e.selected_ad_id ?? "-"}</td>
               </tr>
-            </thead>
 
-            <tbody>
-              {ads.map(ad => (
-                <tr key={ad.ad_id}>
-                  <td>{ad.ad_id}</td>
-                  <td>{ad.gender ?? "-"}</td>
-                  <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
-                  <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
-                  <td>{ad.priority ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
+            ))}
 
-          </table>
+          </tbody>
 
-        </div>
+        </table>
 
 
+        {/* Current Advertisement 保持在 Recent Events 内 */}
 
-        <div className="card latestEvent">
+        {currentAd && currentAd.asset_url && (
 
-          <h2>Latest Event</h2>
+          <div className="adDisplay">
 
-          {latest ? (
+            <h3>Current Advertisement</h3>
 
-            <>
+            <img
+              src={currentAd.asset_url}
+              alt="ad"
+              className="adImage"
+            />
 
-              <p>Device: {latest.device_id}</p>
+            <p>Ad ID: {currentAd.ad_id}</p>
+            <p>Duration: {currentAd.duration_sec}s</p>
 
-              <p>Timestamp: {formatTime(latest.ts)}</p>
+          </div>
 
-              <p>People: {latest.person_count}</p>
-
-              <p>Faces: {latest.face_count}</p>
-
-              <p>Average Age: {latest.age_mid_avg ?? "-"}</p>
-
-              <p>
-                Gender Counts:
-                Male {latestGenderCounts.male} /
-                Female {latestGenderCounts.female}
-              </p>
-
-              <p>Group: {latest.group_type}</p>
-
-              <p>Ad: {latest.selected_ad_id}</p>
-
-            </>
-
-          ) : (
-
-            <p>No data</p>
-
-          )}
-
-        </div>
-
-
-
-        <div className="card recentEvents">
-
-          <h2>Recent Events</h2>
-
-          <table>
-
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Device</th>
-                <th>People</th>
-                <th>Faces</th>
-                <th>Age</th>
-                <th>Temp</th>
-                <th>Humidity</th>
-                <th>Ad</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {events.slice(0,20).map((e,idx)=>(
-
-                <tr key={idx}>
-                  <td>{formatTime(e.ts)}</td>
-                  <td>{e.device_id}</td>
-                  <td>{e.person_count}</td>
-                  <td>{e.face_count}</td>
-                  <td>{e.age_mid_avg ?? "-"}</td>
-                  <td>{e.temp ?? "-"}</td>
-                  <td>{e.hum ?? "-"}</td>
-                  <td>{e.selected_ad_id ?? "-"}</td>
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-
-          {currentAd && currentAd.asset_url && (
-
-            <div className="adDisplay">
-
-              <h3>Current Advertisement</h3>
-
-              <img
-                src={currentAd.asset_url}
-                alt="ad"
-                className="adImage"
-              />
-              <p>Ad ID: {currentAd.ad_id}</p>
-              <p>Duration: {currentAd.duration_sec}s</p>
-            </div>
-
-          )}
-
-        </div>
+        )}
 
       </div>
 
     </div>
 
-  );
+
+    {/* Ad Rules 放到底部 */}
+
+    <div className="card adRules">
+
+      <h2>Ad Rules</h2>
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Ad</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Count</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {ads.map(ad => (
+
+            <tr key={ad.ad_id}>
+              <td>{ad.ad_id}</td>
+              <td>{ad.gender ?? "-"}</td>
+              <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
+              <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
+              <td>{ad.priority ?? "-"}</td>
+            </tr>
+
+          ))}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+);
 
 }
 
