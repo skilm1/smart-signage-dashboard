@@ -134,6 +134,8 @@ function App() {
   const [ads, setAds] = useState([]);
   const [error, setError] = useState("");
   const [shadowAd, setShadowAd] = useState(null);
+  const [controlMsg, setControlMsg] = useState("");
+  const [sendingAdId, setSendingAdId] = useState("");
 
   const EVENTS_API =
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/events";
@@ -142,7 +144,8 @@ function App() {
     "https://dj7r6jv7tk.execute-api.eu-north-1.amazonaws.com/ads";
   const SHADOW_AD_API =
     "https://sej6ilgsac3iaogdemhysilenu0ckwjj.lambda-url.eu-north-1.on.aws/";
-
+  const CONTROL_API =
+    "https://vsz5sjj3nbbfe5zmj2im73pax40zcevm.lambda-url.eu-north-1.on.aws/";
   const loadData = async () => {
 
     try {
@@ -201,7 +204,45 @@ function App() {
   }
 
 };
+const forceAdToScreen = async (ad) => {
 
+  try {
+
+    setSendingAdId(ad.ad_id);
+    setControlMsg("");
+
+    const payload = {
+      ad_id: ad.ad_id,
+      duration_sec: Number(ad.duration_sec || 15),
+      asset_url: ad.asset_url || "",
+      manual_override: true
+    };
+
+    const res = await fetch(CONTROL_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Failed to push ad");
+    }
+
+    setControlMsg("Ad pushed to screen: " + ad.ad_id);
+
+  } catch (err) {
+
+    setControlMsg("Push failed: " + err);
+
+  } finally {
+
+    setSendingAdId("");
+
+  }
+
+};
 
  useEffect(() => {
     loadData();
@@ -583,7 +624,11 @@ const currentAd = shadowAd;
     <div className="card adRules">
 
       <h2>Ad Rules</h2>
-
+      {controlMsg && (
+        <p style={{color:"#38bdf8", marginBottom:"10px"}}>
+          {controlMsg}
+        </p>
+      )}
       <table>
 
         <thead>
@@ -593,6 +638,7 @@ const currentAd = shadowAd;
             <th>Age</th>
             <th>Count</th>
             <th>Priority</th>
+            <th>Control</th>
           </tr>
         </thead>
 
@@ -601,14 +647,30 @@ const currentAd = shadowAd;
           {ads.map(ad => (
 
             <tr key={ad.ad_id}>
+
               <td>{ad.ad_id}</td>
               <td>{ad.gender ?? "-"}</td>
               <td>{ad.age_min ?? "-"}-{ad.age_max ?? "-"}</td>
               <td>{ad.min_count ?? "-"}-{ad.max_count ?? "-"}</td>
               <td>{ad.priority ?? "-"}</td>
+
+              <td>
+
+              <button
+              className="controlBtn"
+              onClick={() => forceAdToScreen(ad)}
+              disabled={sendingAdId === ad.ad_id}
+              >
+
+              {sendingAdId === ad.ad_id ? "Sending..." : "Push"}
+
+              </button>
+
+              </td>
+
             </tr>
 
-          ))}
+            ))}
 
         </tbody>
 
