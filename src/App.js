@@ -481,7 +481,7 @@ if (!shadowAd || !shadowAd.asset_url) {
 
   <div className="dashboard">
 
-    <h1>SMART SIGNAGE AI SYSTEM</h1>
+    <h1>Smart IoT Advertisement System dashboard</h1>
 
     {error && <p style={{ color: "red" }}>{error}</p>}
 
